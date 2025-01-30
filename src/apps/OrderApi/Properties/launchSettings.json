@@ -1,0 +1,10 @@
+﻿{
+  "profiles": {
+    "OrderApi": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "AWS_PROFILE": "localstack"
+      }
+    }
+  }
+}
