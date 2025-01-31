@@ -9,7 +9,7 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "deploy": "dotnet publish -r linux-x64 .. && cdklocal synth && cdklocal deploy --all --profile localstack --require-approval never --no-rollback",
+    "deploy": "dotnet publish -r linux-x64 .. && cdklocal synth && cdklocal deploy --all --profile localstack --require-approval never",
     "bootstrap": "dotnet publish -r linux-x64 .. && cdklocal bootstrap --profile localstack"
   },
   "devDependencies": {

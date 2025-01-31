@@ -24,6 +24,7 @@ class OrderApiConstruct extends Construct {
     super(scope, id);
 
     this.handler = new lambda.Function(this, "OrderApiFunction", {
+      functionName: `${this.node.id}-Function`,
       runtime: lambda.Runtime.DOTNET_8,
       code: lambda.Code.fromAsset(
         path.resolve("../", "publish", "OrderApi.zip")
@@ -32,6 +33,7 @@ class OrderApiConstruct extends Construct {
     });
 
     this.ordersTable = new dynamodb.TableV2(this, "OrderTable", {
+      tableName: `${this.node.id}-Orders`,
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
@@ -50,6 +52,7 @@ class OrderApiConstruct extends Construct {
 
     // Outbox table
     this.outboxTable = new dynamodb.TableV2(this, "OutboxTable", {
+      tableName: `${this.node.id}-Outbox`,
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       dynamoStream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
@@ -67,24 +70,25 @@ class OrderApiConstruct extends Construct {
     outboxTableNameParam.grantRead(this.handler);
 
     const outboxQueue = new sqs.Queue(this, "OutboxQueue", {
-      queueName: "OutboxQueue",
+      queueName: `${this.node.id}-OutboxQueue`,
     });
 
     const pipeRole = new iam.Role(this, "OutboxPipeRole", {
+      roleName: `${this.node.id}-OutboxPipeRole`,
       assumedBy: new iam.ServicePrincipal("pipes.amazonaws.com"),
     });
 
     const outboxPipe = new pipes.CfnPipe(this, "OutboxPipe", {
+      name: `${this.node.id}-OutboxPipe`,
       roleArn: pipeRole.roleArn,
       source: this.outboxTable.tableStreamArn!,
       sourceParameters: {
         dynamoDbStreamParameters: {
           startingPosition: "LATEST",
+          batchSize: 1,
         },
         filterCriteria: {
-          filters: [
-            // {pattern: JSON.stringify({"":""})}
-          ],
+          filters: [{ pattern: JSON.stringify({ eventName: ["INSERT"] }) }],
         },
       },
       target: outboxQueue.queueArn,
@@ -110,6 +114,6 @@ export class OrderApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: OrderApiProps) {
     super(scope, id, props);
 
-    new OrderApiConstruct(this, "OrderApiConstruct", props.api, props.bus);
+    new OrderApiConstruct(this, "OrderApi-dev", props.api, props.bus);
   }
 }

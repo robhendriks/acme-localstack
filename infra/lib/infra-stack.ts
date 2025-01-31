@@ -12,6 +12,7 @@ export class InfraStack extends cdk.Stack {
     super(scope, id, props);
 
     this.api = new apigateway.RestApi(this, "Api", {
+      restApiName: "Acme-dev",
       deploy: true,
       deployOptions: { stageName: "dev" },
     });
@@ -19,7 +20,7 @@ export class InfraStack extends cdk.Stack {
     cdk.Tags.of(this.api).add("_custom_id_", "acme");
 
     this.bus = new events.EventBus(this, "EventBus", {
-      eventBusName: "acme-dev",
+      eventBusName: "Acme-dev",
     });
   }
 }
