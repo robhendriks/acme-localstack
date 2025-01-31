@@ -54,7 +54,7 @@ export class TransactionalTopic extends Construct {
     this.outboxFunction = this.createOutboxFunction();
     props.outbox.table.grantReadData(this.outboxFunction);
 
-    this.inboxFunction = this.createInboxFunction();
+    this.inboxFunction = this.createInboxFunction(props.inbox);
     props.inbox.table.grantReadWriteData(this.inboxFunction);
 
     const pipeRole = new Role(this, "PipeRole", {
@@ -108,7 +108,7 @@ export class TransactionalTopic extends Construct {
     return fn;
   }
 
-  private createInboxFunction(): Function {
+  private createInboxFunction(inbox: TransactionalInbox): Function {
     const fn = new Function(this, "InboxProcessor", {
       functionName: `${this.fqdn}-InboxProcessor`,
       runtime: Runtime.DOTNET_8,
@@ -118,6 +118,9 @@ export class TransactionalTopic extends Construct {
       handler:
         "Acme.InboxProcessor::Acme.InboxProcessor.Function::FunctionHandler",
     });
+
+    fn.addEnvironment("INBOX_TABLE_NAME", inbox.table.tableName);
+    inbox.table.grantReadData(fn);
 
     fn.addEventSource(new SqsEventSource(this.inboxQueue));
 

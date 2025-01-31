@@ -7,7 +7,7 @@ namespace Acme.Infrastructure.Storage;
 
 internal sealed class AmazonDatabaseError() : Error("");
 
-internal sealed class AmazonDatabase(IAmazonDynamoDB client) : IAmazonDatabase
+public sealed class AmazonDatabase(IAmazonDynamoDB client) : IAmazonDatabase
 {
     private readonly List<PutItemRequest> _putItemRequests = [];
 
