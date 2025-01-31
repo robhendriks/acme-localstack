@@ -15,6 +15,12 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services
+            .AddOptions<OutboxTableOptions>()
+            .BindConfiguration("OutboxTable")
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services
             .AddSingleton<IOrderRepository, OrderRepository>()
             .AddSingleton<IOutboxRepository, OutboxRepository>();
 

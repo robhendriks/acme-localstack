@@ -38,6 +38,10 @@ internal sealed class OutboxRepository(
                 ["messageBody"] = new()
                 {
                     S = JsonSerializer.Serialize(message, JsonSerializerOptions)
+                },
+                ["createdAt"] = new()
+                {
+                    S = DateTime.UtcNow.ToString("O")
                 }
             }
         });

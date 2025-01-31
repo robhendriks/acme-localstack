@@ -4,6 +4,10 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as ssm from "aws-cdk-lib/aws-ssm";
+import * as events from "aws-cdk-lib/aws-events";
+import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as pipes from "aws-cdk-lib/aws-pipes";
+import * as iam from "aws-cdk-lib/aws-iam";
 import path = require("path");
 
 class OrderApiConstruct extends Construct {
@@ -11,7 +15,12 @@ class OrderApiConstruct extends Construct {
   public readonly ordersTable: dynamodb.TableV2;
   public readonly outboxTable: dynamodb.TableV2;
 
-  constructor(scope: Construct, id: string, api: apigateway.RestApi) {
+  constructor(
+    scope: Construct,
+    id: string,
+    api: apigateway.RestApi,
+    bus: events.EventBus
+  ) {
     super(scope, id);
 
     this.handler = new lambda.Function(this, "OrderApiFunction", {
@@ -43,6 +52,7 @@ class OrderApiConstruct extends Construct {
     this.outboxTable = new dynamodb.TableV2(this, "OutboxTable", {
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+      dynamoStream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
     });
 
     const outboxTableNameParam = new ssm.StringParameter(
@@ -55,6 +65,30 @@ class OrderApiConstruct extends Construct {
     );
 
     outboxTableNameParam.grantRead(this.handler);
+
+    const outboxQueue = new sqs.Queue(this, "OutboxQueue", {
+      queueName: "OutboxQueue",
+    });
+
+    const pipeRole = new iam.Role(this, "OutboxPipeRole", {
+      assumedBy: new iam.ServicePrincipal("pipes.amazonaws.com"),
+    });
+
+    const outboxPipe = new pipes.CfnPipe(this, "OutboxPipe", {
+      roleArn: pipeRole.roleArn,
+      source: this.outboxTable.tableStreamArn!,
+      sourceParameters: {
+        dynamoDbStreamParameters: {
+          startingPosition: "LATEST",
+        },
+        filterCriteria: {
+          filters: [
+            // {pattern: JSON.stringify({"":""})}
+          ],
+        },
+      },
+      target: outboxQueue.queueArn,
+    });
 
     this.addRoutes(api);
   }
@@ -69,12 +103,13 @@ class OrderApiConstruct extends Construct {
 
 interface OrderApiProps extends cdk.StackProps {
   api: apigateway.RestApi;
+  bus: events.EventBus;
 }
 
 export class OrderApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: OrderApiProps) {
     super(scope, id, props);
 
-    new OrderApiConstruct(this, "OrderApiConstruct", props.api);
+    new OrderApiConstruct(this, "OrderApiConstruct", props.api, props.bus);
   }
 }
