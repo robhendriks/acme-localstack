@@ -16,6 +16,8 @@ export class InfraStack extends cdk.Stack {
       deployOptions: { stageName: "dev" },
     });
 
+    cdk.Tags.of(this.api).add("_custom_id_", "acme");
+
     this.bus = new events.EventBus(this, "EventBus", {
       eventBusName: "acme-dev",
     });
