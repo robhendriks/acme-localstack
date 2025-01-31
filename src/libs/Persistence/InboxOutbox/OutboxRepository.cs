@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Acme.Infrastructure.Storage;
 using Amazon.DynamoDBv2.Model;
 using Microsoft.Extensions.Options;
@@ -18,6 +20,9 @@ internal sealed class OutboxRepository(
 
     public void Create<TMessage>(string eventName, TMessage message)
     {
+        var content = JsonSerializer.Serialize(message, JsonSerializerOptions);
+        var contentHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(content)));
+
         database.Put(new PutItemRequest
         {
             TableName = options.Value.TableName,
@@ -27,17 +32,17 @@ internal sealed class OutboxRepository(
                 {
                     S = Guid.NewGuid().ToString("D")
                 },
-                ["name"] = new()
+                ["eventName"] = new()
                 {
                     S = eventName
                 },
-                ["messageType"] = new()
+                ["content"] = new()
                 {
-                    S = typeof(TMessage).FullName!
+                    S = content
                 },
-                ["messageBody"] = new()
+                ["contentHash"] = new()
                 {
-                    S = JsonSerializer.Serialize(message, JsonSerializerOptions)
+                    S = contentHash
                 },
                 ["createdAt"] = new()
                 {
