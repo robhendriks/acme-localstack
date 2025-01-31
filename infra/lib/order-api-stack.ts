@@ -5,19 +5,18 @@ import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import * as events from "aws-cdk-lib/aws-events";
-import * as sqs from "aws-cdk-lib/aws-sqs";
-import * as pipes from "aws-cdk-lib/aws-pipes";
-import * as iam from "aws-cdk-lib/aws-iam";
 import path = require("path");
-import {
-  TransactionalOutbox,
-  TransactionalOutboxTopic,
-} from "./patterns/transactional-outbox";
+import { TransactionalOutbox } from "./patterns/transactional-outbox";
+import { TransactionalInbox } from "./patterns/transactional-inbox";
+import { TransactionalTopic } from "./patterns/transactional-topic";
 
 class OrderApiConstruct extends Construct {
   public readonly handler: lambda.Function;
+
+  public readonly topic: TransactionalTopic;
+  public readonly inbox: TransactionalInbox;
   public readonly outbox: TransactionalOutbox;
-  public readonly defaultTopic: TransactionalOutboxTopic;
+
   public readonly ordersTable: dynamodb.TableV2;
 
   constructor(
@@ -37,11 +36,15 @@ class OrderApiConstruct extends Construct {
       handler: "Acme.OrderApi",
     });
 
-    this.outbox = new TransactionalOutbox(this, "Outbox");
-    this.outbox.grant(this.handler);
+    this.inbox = new TransactionalInbox(this, "Inbox");
 
-    this.defaultTopic = new TransactionalOutboxTopic(this, "DefaultTopic");
-    this.defaultTopic.connectTo(this.outbox);
+    this.outbox = new TransactionalOutbox(this, "Outbox");
+    this.outbox.grantWrite(this.handler);
+
+    this.topic = new TransactionalTopic(this, "DefaultTopic", {
+      inbox: this.inbox,
+      outbox: this.outbox,
+    });
 
     this.ordersTable = new dynamodb.TableV2(this, "OrderTable", {
       tableName: `${this.node.id}-Orders`,

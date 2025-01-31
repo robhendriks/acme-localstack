@@ -2,5 +2,5 @@
 
 public interface IOutboxRepository
 {
-    void Create<TMessage>(string eventName, TMessage message, string? topic = null);
+    void Create<TMessage>(string eventName, TMessage payload, string? topic = null);
 }

@@ -1,44 +1,80 @@
+using System.Globalization;
+using System.Net;
+using System.Text.Json;
+using Acme.Domain.InboxOutbox;
+using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
+using Amazon.SimpleNotificationService;
+using Amazon.SimpleNotificationService.Model;
 
-
-// Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
 namespace Acme.OutboxProcessor;
 
 public class Function
 {
-    /// <summary>
-    /// Default constructor. This constructor is used by Lambda to construct the instance. When invoked in a Lambda environment
-    /// the AWS credentials will come from the IAM role associated with the function and the AWS region will be set to the
-    /// region the Lambda function is executed in.
-    /// </summary>
-    public Function()
-    {
-    }
+    private readonly AmazonSimpleNotificationServiceClient _sns = new();
 
-
-    /// <summary>
-    /// This method is called for every Lambda invocation. This method takes in an SQS event object and can be used 
-    /// to respond to SQS messages.
-    /// </summary>
-    /// <param name="sqsEvent">The event for the Lambda function handler to process.</param>
-    /// <param name="context">The ILambdaContext that provides methods for logging and describing the Lambda environment.</param>
-    /// <returns></returns>
     public async Task FunctionHandler(SQSEvent sqsEvent, ILambdaContext context)
     {
-        foreach (var message in sqsEvent.Records)
+        var messages = CreateMessages(sqsEvent.Records, context);
+
+        var snsTopicArn = Environment.GetEnvironmentVariable("SNS_TOPIC_ARN")
+                          ?? throw new InvalidOperationException("Environment variable 'SNS_TOPIC_ARN' not set.");
+
+        var request = new PublishBatchRequest
         {
-            await ProcessMessageAsync(message, context);
+            TopicArn = snsTopicArn,
+            PublishBatchRequestEntries = messages.ConvertAll(m => new PublishBatchRequestEntry
+            {
+                Id = m.Id.ToString("D"),
+                Message = JsonSerializer.Serialize(m, Message.JsonSerializerOptions),
+                MessageDeduplicationId = m.Id.ToString("D"),
+            })
+        };
+
+        var snsResponse = await _sns.PublishBatchAsync(request);
+
+        if (snsResponse.HttpStatusCode != HttpStatusCode.OK)
+        {
+            throw new InvalidOperationException("Failed to publish messages.");
         }
+
+        // TODO: DELETE outbox message or set TTL
     }
 
-    private async Task ProcessMessageAsync(SQSEvent.SQSMessage message, ILambdaContext context)
-    {
-        context.Logger.LogInformation($"Processed message {message.Body}");
+    private static List<Message> CreateMessages(
+        List<SQSEvent.SQSMessage> sqsEventRecords, ILambdaContext context) =>
+        sqsEventRecords
+            .ConvertAll(
+                m =>
+                {
+                    context.Logger.LogInformation($"Processing message: {m.Body}");
 
-        // TODO: Do interesting work based on the new message
-        await Task.CompletedTask;
-    }
+                    var dynamodbStreamRecord =
+                        JsonSerializer.Deserialize<DynamoDbEvent>(m.Body, Message.JsonSerializerOptions)!;
+                    var map = dynamodbStreamRecord.DynamoDb.NewImage;
+
+                    return new Message
+                    {
+                        Id = Guid.Parse(map["id"].S),
+                        Topic = map["topic"].S,
+                        EventName = map["eventName"].S,
+                        Content = map["content"].S,
+                        ContentHash = map["contentHash"].S,
+                        CreatedAt = DateTime.Parse(map["createdAt"].S, CultureInfo.InvariantCulture,
+                            DateTimeStyles.AssumeUniversal)
+                    };
+                });
+}
+
+public class DynamoDbEventStream
+{
+    public Dictionary<string, AttributeValue> NewImage { get; set; } = null!;
+}
+
+public class DynamoDbEvent
+{
+    public DynamoDbEventStream DynamoDb { get; set; } = null!;
 }

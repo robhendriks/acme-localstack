@@ -1,6 +1,4 @@
-﻿using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
+﻿using Acme.Domain.InboxOutbox;
 using Acme.Infrastructure.Storage;
 using Amazon.DynamoDBv2.Model;
 using Microsoft.Extensions.Options;
@@ -12,47 +10,14 @@ internal sealed class OutboxRepository(
     IOptions<OutboxTableOptions> options)
     : IOutboxRepository
 {
-    private static readonly JsonSerializerOptions JsonSerializerOptions = new()
+    public void Create<TPayload>(string eventName, TPayload payload, string? topic = null)
     {
-        WriteIndented = false,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
-    public void Create<TMessage>(string eventName, TMessage message, string? topic = null)
-    {
-        var content = JsonSerializer.Serialize(message, JsonSerializerOptions);
-        var contentHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(content)));
+        var message = Message.Create(payload, eventName, topic);
 
         database.Put(new PutItemRequest
         {
             TableName = options.Value.TableName,
-            Item = new Dictionary<string, AttributeValue>
-            {
-                ["id"] = new()
-                {
-                    S = Guid.NewGuid().ToString("D")
-                },
-                ["topic"] = new()
-                {
-                    S = topic ?? "default"
-                },
-                ["eventName"] = new()
-                {
-                    S = eventName
-                },
-                ["content"] = new()
-                {
-                    S = content
-                },
-                ["contentHash"] = new()
-                {
-                    S = contentHash
-                },
-                ["createdAt"] = new()
-                {
-                    S = DateTime.UtcNow.ToString("O")
-                }
-            }
+            Item = MessageMapper.ToMap(message)
         });
     }
 }
