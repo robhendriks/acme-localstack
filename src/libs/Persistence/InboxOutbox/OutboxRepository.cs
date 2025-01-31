@@ -18,7 +18,7 @@ internal sealed class OutboxRepository(
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public void Create<TMessage>(string eventName, TMessage message)
+    public void Create<TMessage>(string eventName, TMessage message, string? topic = null)
     {
         var content = JsonSerializer.Serialize(message, JsonSerializerOptions);
         var contentHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(content)));
@@ -31,6 +31,10 @@ internal sealed class OutboxRepository(
                 ["id"] = new()
                 {
                     S = Guid.NewGuid().ToString("D")
+                },
+                ["topic"] = new()
+                {
+                    S = topic ?? "default"
                 },
                 ["eventName"] = new()
                 {
