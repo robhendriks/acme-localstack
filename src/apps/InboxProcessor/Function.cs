@@ -26,7 +26,9 @@ public class Function
         foreach (var sqsMessage in sqsEvent.Records)
         {
             context.Logger.LogInformation($"Processing message {sqsMessage.Body}");
-            var message = JsonSerializer.Deserialize<Message>(sqsMessage.Body)!;
+
+            var snsMessage = JsonSerializer.Deserialize<SnsMessage>(sqsMessage.Body, Message.JsonSerializerOptions)!;
+            var message = JsonSerializer.Deserialize<Message>(snsMessage.Message, Message.JsonSerializerOptions)!;
 
             db.Put(new PutItemRequest
             {
@@ -41,4 +43,9 @@ public class Function
             throw new InvalidOperationException(result.Errors[0].Message);
         }
     }
+}
+
+file class SnsMessage
+{
+    public required string Message { get; set; }
 }
