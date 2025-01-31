@@ -31,8 +31,11 @@ internal sealed class OutboxRepository(
                 {
                     S = eventName
                 },
-                ["messageType"] = { S = typeof(TMessage).FullName! },
-                ["messageBody"] = new AttributeValue()
+                ["messageType"] = new()
+                {
+                    S = typeof(TMessage).FullName!
+                },
+                ["messageBody"] = new()
                 {
                     S = JsonSerializer.Serialize(message, JsonSerializerOptions)
                 }
