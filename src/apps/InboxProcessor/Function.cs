@@ -1,5 +1,5 @@
 using Amazon.Lambda.Core;
-using Amazon.Lambda.SNSEvents;
+using Amazon.Lambda.SQSEvents;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -7,18 +7,13 @@ namespace Acme.InboxProcessor;
 
 public class Function
 {
-    public async Task FunctionHandler(SNSEvent snsEvent, ILambdaContext context)
+    public Task FunctionHandler(SQSEvent sqsEvent, ILambdaContext context)
     {
-        foreach (var record in snsEvent.Records)
+        foreach (var message in sqsEvent.Records)
         {
-            await ProcessRecordAsync(record, context);
+            context.Logger.LogInformation($"Processing message {message.Body}");
         }
-    }
 
-    private async Task ProcessRecordAsync(SNSEvent.SNSRecord record, ILambdaContext context)
-    {
-        context.Logger.LogInformation($"Processed record {record.Sns.Message}");
-
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }

@@ -11,6 +11,7 @@ import {
 } from "aws-cdk-lib/aws-lambda-event-sources";
 import { Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import { CfnPipe } from "aws-cdk-lib/aws-pipes";
+import { SqsSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 
 export interface TransactionalTopicProps {
   topicName?: string;
@@ -30,10 +31,6 @@ export class TransactionalTopic extends Construct {
 
   public outboxFunction: Function;
   public inboxFunction: Function;
-
-  private _pipeRole: Role;
-  private _outboxPipe: CfnPipe;
-  private _inboxPipe: CfnPipe;
 
   constructor(scope: Construct, id: string, props: TransactionalTopicProps) {
     super(scope, id);
@@ -60,15 +57,15 @@ export class TransactionalTopic extends Construct {
     this.inboxFunction = this.createInboxFunction();
     props.inbox.table.grantReadWriteData(this.inboxFunction);
 
-    this._pipeRole = new Role(this, "PipeRole", {
+    const pipeRole = new Role(this, "PipeRole", {
       roleName: `${this.fqdn}-PipeRole`,
       assumedBy: new ServicePrincipal("pipes.amazonaws.com"),
     });
 
     // Create outbox pipe
-    this._outboxPipe = new CfnPipe(this, "OutboxPipe", {
+    const pipe = new CfnPipe(this, "OutboxPipe", {
       name: `${this.fqdn}-Pipe`,
-      roleArn: this._pipeRole.roleArn,
+      roleArn: pipeRole.roleArn,
       source: props.outbox.table.tableStreamArn!,
       sourceParameters: {
         dynamoDbStreamParameters: {
@@ -89,8 +86,7 @@ export class TransactionalTopic extends Construct {
       target: this.outboxQueue.queueArn,
     });
 
-    // Create inbox pipe
-    // TODO
+    this.topic.addSubscription(new SqsSubscription(this.inboxQueue));
   }
 
   private createOutboxFunction(): Function {
@@ -123,11 +119,7 @@ export class TransactionalTopic extends Construct {
         "Acme.InboxProcessor::Acme.InboxProcessor.Function::FunctionHandler",
     });
 
-    fn.addEnvironment("SQS_QUEUE_ARN", this.inboxQueue.queueArn);
-    fn.addEnvironment("SQS_QUEUE_NAME", this.inboxQueue.queueName);
-    fn.addEnvironment("SQS_QUEUE_URL", this.inboxQueue.queueUrl);
-
-    fn.addEventSource(new SnsEventSource(this.topic));
+    fn.addEventSource(new SqsEventSource(this.inboxQueue));
 
     return fn;
   }
