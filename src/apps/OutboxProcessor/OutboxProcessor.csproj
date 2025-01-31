@@ -5,6 +5,7 @@
     <AWSProjectType>Lambda</AWSProjectType>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PublishReadyToRun>true</PublishReadyToRun>
+    <IsPublishable>true</IsPublishable>
   </PropertyGroup>
 
   <Target Name="ZipOutputPath" AfterTargets="Publish">

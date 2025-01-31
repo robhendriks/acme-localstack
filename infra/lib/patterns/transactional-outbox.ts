@@ -4,12 +4,14 @@ import {
   AttributeType,
   StreamViewType,
 } from "aws-cdk-lib/aws-dynamodb";
-import { SqsQueue } from "aws-cdk-lib/aws-events-targets";
 import { IGrantable, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import { CfnPipe } from "aws-cdk-lib/aws-pipes";
 import { Queue } from "aws-cdk-lib/aws-sqs";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { Construct } from "constructs";
+import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
+import path = require("path");
+import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 export interface TransactionalOutboxProps {}
 
@@ -50,6 +52,7 @@ export class TransactionalOutboxTopic extends Construct {
   public queue: Queue;
   public fqdn: string;
   public topicName: string;
+  public processor: Function;
 
   private _pipeRole?: Role;
   private _pipe?: CfnPipe;
@@ -68,6 +71,18 @@ export class TransactionalOutboxTopic extends Construct {
     this.queue = new Queue(this, "Queue", {
       queueName: `${this.fqdn}-Queue`,
     });
+
+    this.processor = new Function(this, "Processor", {
+      functionName: `${this.fqdn}-Processor`,
+      runtime: Runtime.DOTNET_8,
+      code: Code.fromAsset(
+        path.resolve("../", "publish", "OutboxProcessor.zip")
+      ),
+      handler:
+        "Acme.OutboxProcessor::Acme.OutboxProcessor.Function::FunctionHandler",
+    });
+
+    this.processor.addEventSource(new SqsEventSource(this.queue));
   }
 
   public connectTo(outbox: TransactionalOutbox) {

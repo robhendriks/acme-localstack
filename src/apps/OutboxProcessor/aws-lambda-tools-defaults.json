@@ -11,5 +11,5 @@
   "function-runtime": "dotnet8",
   "function-memory-size": 512,
   "function-timeout": 30,
-  "function-handler": "OutboxProcessor::OutboxProcessor.Function::FunctionHandler"
+  "function-handler": "Acme.OutboxProcessor::Acme.OutboxProcessor.Function::FunctionHandler"
 }
