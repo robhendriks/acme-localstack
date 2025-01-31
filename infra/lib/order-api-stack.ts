@@ -8,7 +8,8 @@ import path = require("path");
 
 class OrderApiConstruct extends Construct {
   public readonly handler: lambda.Function;
-  public readonly table: dynamodb.TableV2;
+  public readonly ordersTable: dynamodb.TableV2;
+  public readonly outboxTable: dynamodb.TableV2;
 
   constructor(scope: Construct, id: string, api: apigateway.RestApi) {
     super(scope, id);
@@ -21,17 +22,39 @@ class OrderApiConstruct extends Construct {
       handler: "Acme.OrderApi",
     });
 
-    this.table = new dynamodb.TableV2(this, "Orders", {
+    this.ordersTable = new dynamodb.TableV2(this, "OrderTable", {
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    const tableNameParam = new ssm.StringParameter(this, "OrderTable", {
-      parameterName: "/OrderTable/TableName",
-      stringValue: this.table.tableName,
+    // Orders table
+    const ordersTableNameParam = new ssm.StringParameter(
+      this,
+      "OrderTableName",
+      {
+        parameterName: "/OrderTable/TableName",
+        stringValue: this.ordersTable.tableName,
+      }
+    );
+
+    ordersTableNameParam.grantRead(this.handler);
+
+    // Outbox table
+    this.outboxTable = new dynamodb.TableV2(this, "OutboxTable", {
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    tableNameParam.grantRead(this.handler);
+    const outboxTableNameParam = new ssm.StringParameter(
+      this,
+      "OutboxTableName",
+      {
+        parameterName: "/OutboxTable/TableName",
+        stringValue: this.outboxTable.tableName,
+      }
+    );
+
+    outboxTableNameParam.grantRead(this.handler);
 
     this.addRoutes(api);
   }

@@ -4,6 +4,7 @@
         <PackageReference Include="FluentResults" Version="3.16.0"/>
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.1" />
         <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="9.0.1" />
+        <PackageReference Include="Amazon.Extensions.Configuration.SystemsManager" Version="6.2.2" />
     </ItemGroup>
 
     <ItemGroup>

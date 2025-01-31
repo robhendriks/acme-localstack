@@ -10,7 +10,7 @@
     "test": "jest",
     "cdk": "cdk",
     "deploy": "dotnet publish -r linux-x64 .. && cdklocal synth && cdklocal deploy --all --profile localstack --require-approval never",
-    "bootstrap": "cdklocal bootstrap --profile localstack"
+    "bootstrap": "dotnet publish -r linux-x64 .. && cdklocal bootstrap --profile localstack"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

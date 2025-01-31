@@ -1,4 +1,5 @@
-﻿using Acme.Persistence.Orders;
+﻿using Acme.Persistence.InboxOutbox;
+using Acme.Persistence.Orders;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Acme.Persistence;
@@ -14,7 +15,8 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services
-            .AddSingleton<IOrderRepository, OrderRepository>();
+            .AddSingleton<IOrderRepository, OrderRepository>()
+            .AddSingleton<IOutboxRepository, OutboxRepository>();
 
         return services;
     }

@@ -1,20 +1,13 @@
 ﻿using Acme.Application.Orders.Commands.CreateOrder;
 using Acme.OrderApi;
-using Amazon;
-using Amazon.Extensions.NETCore.Setup;
-using Amazon.Runtime;
+using Acme.Persistence;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
-    .AddSystemsManager(cfg =>
-    {
-        cfg.Prefix = "OrderTable";
-        cfg.Path = "/OrderTable/";
-        cfg.ReloadAfter = TimeSpan.FromMinutes(5);
-    });
+    .AddPersistenceConfiguration();
 
 builder.Services
     .AddAWSLambdaHosting(LambdaEventSource.RestApi)
