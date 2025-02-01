@@ -36,6 +36,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InboxProcessor", "src\apps\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "processors", "processors", "{C9643169-FB25-4A8D-AF33-375DE58D7816}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FargateExample", "src\apps\FargateExample\FargateExample.csproj", "{93837FE1-00CD-4C3D-87E1-1166C615CB3A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,7 @@ Global
 		{C9643169-FB25-4A8D-AF33-375DE58D7816} = {9142DC77-5CC9-423F-BA52-446815FA3D21}
 		{439C6DAF-5518-495B-80C8-D38E744C37C1} = {C9643169-FB25-4A8D-AF33-375DE58D7816}
 		{AA0C8160-DF28-44F1-90FE-97037FF093B7} = {C9643169-FB25-4A8D-AF33-375DE58D7816}
+		{93837FE1-00CD-4C3D-87E1-1166C615CB3A} = {9142DC77-5CC9-423F-BA52-446815FA3D21}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{A6EB9918-BAC4-4770-A9E0-2F27671E3529}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -85,5 +88,9 @@ Global
 		{AA0C8160-DF28-44F1-90FE-97037FF093B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AA0C8160-DF28-44F1-90FE-97037FF093B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AA0C8160-DF28-44F1-90FE-97037FF093B7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93837FE1-00CD-4C3D-87E1-1166C615CB3A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93837FE1-00CD-4C3D-87E1-1166C615CB3A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93837FE1-00CD-4C3D-87E1-1166C615CB3A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93837FE1-00CD-4C3D-87E1-1166C615CB3A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

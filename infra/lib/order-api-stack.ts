@@ -4,7 +4,6 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as ssm from "aws-cdk-lib/aws-ssm";
-import * as events from "aws-cdk-lib/aws-events";
 import path = require("path");
 import { TransactionalOutbox } from "./patterns/transactional-outbox";
 import { TransactionalInbox } from "./patterns/transactional-inbox";
@@ -19,12 +18,7 @@ class OrderApiConstruct extends Construct {
 
   public readonly ordersTable: dynamodb.TableV2;
 
-  constructor(
-    scope: Construct,
-    id: string,
-    api: apigateway.RestApi,
-    bus: events.EventBus
-  ) {
+  constructor(scope: Construct, id: string, api: apigateway.RestApi) {
     super(scope, id);
 
     this.handler = new lambda.Function(this, "OrderApiFunction", {
@@ -80,13 +74,12 @@ class OrderApiConstruct extends Construct {
 
 interface OrderApiProps extends cdk.StackProps {
   api: apigateway.RestApi;
-  bus: events.EventBus;
 }
 
 export class OrderApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: OrderApiProps) {
     super(scope, id, props);
 
-    new OrderApiConstruct(this, "OrderApi-dev", props.api, props.bus);
+    new OrderApiConstruct(this, "OrderApi-dev", props.api);
   }
 }
