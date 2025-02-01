@@ -11,6 +11,24 @@ public sealed class AmazonDatabase(IAmazonDynamoDB client) : IAmazonDatabase
 {
     private readonly List<PutItemRequest> _putItemRequests = [];
 
+    public async Task<Result<GetItemResponse>> GetAsync(string tableName, string keyName, string keyValue,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new GetItemRequest
+        {
+            TableName = tableName,
+            Key = new Dictionary<string, AttributeValue> { { keyName, new AttributeValue { S = keyValue } } }
+        };
+
+        var response = await client.GetItemAsync(request, cancellationToken);
+        if (response.HttpStatusCode != HttpStatusCode.OK)
+        {
+            return new AmazonDatabaseError();
+        }
+
+        return response;
+    }
+
     public async Task<Result> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var request = new TransactWriteItemsRequest

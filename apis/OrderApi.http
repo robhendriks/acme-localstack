@@ -1,3 +1,16 @@
-﻿POST {{url}}/v1/orders
+﻿POST {{url}}/orders
 Content-Type: application/json
 
+{
+  "arrivalDate": "2025-02-01T14:00:00.000Z",
+  "departureDate": "2025-02-03T11:00:00.000Z",
+  "adults": 2,
+  "children": 0
+}
+
+###
+
+@orderId = f8ca7d35-84bb-46ac-bf9c-9bf56137424a
+
+GET {{url}}/orders/{{orderId}}
+Content-Type: application/json

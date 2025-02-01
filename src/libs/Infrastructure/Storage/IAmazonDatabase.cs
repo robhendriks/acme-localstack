@@ -8,4 +8,7 @@ public interface IAmazonDatabase
 {
     Task<Result> SaveChangesAsync(CancellationToken cancellationToken = default);
     void Put(PutItemRequest putItemRequest);
+
+    Task<Result<GetItemResponse>> GetAsync(string tableName, string keyName, string keyValue,
+        CancellationToken cancellationToken = default);
 }

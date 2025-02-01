@@ -16,7 +16,13 @@ public sealed class CreateOrderCommandHandler(
 {
     public async Task<Result<Guid>> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
-        var order = new Order(Guid.NewGuid());
+        var order = new Order(
+            Guid.NewGuid(),
+            request.ArrivalDate,
+            request.DepartureDate,
+            request.Adults,
+            request.Children
+        );
 
         // Begin transaction
         orderRepository.Create(order);

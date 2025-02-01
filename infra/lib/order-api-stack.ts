@@ -68,10 +68,13 @@ class OrderApiConstruct extends Construct {
   }
 
   private addRoutes(api: apigateway.RestApi) {
-    const v1 = api.root.addResource("v1");
-    const orders = v1.addResource("orders");
+    const integration = new apigateway.LambdaIntegration(this.handler);
 
-    orders.addMethod("POST", new apigateway.LambdaIntegration(this.handler));
+    const orders = api.root.addResource("orders");
+    orders.addMethod("POST", integration);
+
+    const orderDetail = orders.addResource("{orderId}");
+    orderDetail.addMethod("GET", integration);
   }
 }
 
