@@ -1,17 +1,26 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib";
 import { InfraStack } from "../lib/infra-stack";
-import { OrderApiStack } from "../lib/order-api-stack";
-import { FargateStack } from "../lib/fargate-stack";
+import { OrderingStack } from "../lib/ordering-stack";
 
 const app = new cdk.App();
 
-const infra = new InfraStack(app, "Acme-dev-Infra", {});
+const stacks = (process.env.ACME_STACKS ?? "").split(",");
 
-new OrderApiStack(app, "Acme-dev-OrderApi", {
-  api: infra.api,
-});
+console.log("Stacks", stacks);
 
-new FargateStack(app, "Acme-dev-FargateExample", {
-  cluster: infra.cluster,
-});
+if (stacks.includes("infra")) {
+  new InfraStack(app, "acme-infra", {
+    stackName: "acme-infra",
+  });
+} else {
+  console.info("skipping infra stack");
+}
+
+if (stacks.includes("ordering")) {
+  new OrderingStack(app, "acme-ordering", {
+    stackName: "acme-ordering",
+  });
+} else {
+  console.info("skipping ordering stack");
+}

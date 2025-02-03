@@ -1,19 +1,19 @@
 <Project>
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <IsPackable>false</IsPackable>
-        <IsPublishable>false</IsPublishable>
-        <PublishDir>$([System.IO.Path]::Combine($(SolutionDir), 'publish', $(MSBuildProjectName)))</PublishDir>
-        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-    </PropertyGroup>
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsPublishable>false</IsPublishable>
+    <PublishDir>$([System.IO.Path]::Combine($(SolutionDir), 'publish', $(MSBuildProjectName)))</PublishDir>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <AssemblyName>$(SolutionName).$(MSBuildProjectName)</AssemblyName>
-        <RootNamespace>$(SolutionName).$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
-    </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyName>$(SolutionName).$(MSBuildProjectName)</AssemblyName>
+    <RootNamespace>$(SolutionName).$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+  </PropertyGroup>
 </Project>
