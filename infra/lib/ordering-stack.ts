@@ -1,8 +1,8 @@
 import { Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { AcmeFunction } from "./patterns/acme-function";
 import { HttpMethod } from "aws-cdk-lib/aws-apigatewayv2";
-import { AcmeOutbox } from "./patterns/acme-outbox";
+import { AcmeFunction } from "./constructs/lambda/acme-function";
+import { AcmeOutbox } from "./constructs/events/acme-outbox";
 
 export class OrderingStack extends Stack {
   public createOrderFunction: AcmeFunction;
