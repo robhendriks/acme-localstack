@@ -9,7 +9,7 @@ import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations
 import { AssetCode, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 import { resolve } from "path";
-import { importHttpApi } from "../util/http-api";
+import { importHttpApi } from "../../util/http-api";
 
 export interface AcmeFunctionProps {
   projectName: string;
