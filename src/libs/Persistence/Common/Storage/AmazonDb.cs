@@ -39,8 +39,9 @@ internal sealed partial class AmazonDb(IAmazonDynamoDB dynamoDb, ILogger<AmazonD
                 {
                     TableName = update.TableName,
                     Key = update.Key,
+                    ExpressionAttributeNames = update.ExpressionAttributeNames,
+                    ExpressionAttributeValues = update.ExpressionAttributeValues,
                     UpdateExpression = update.UpdateExpression,
-                    ExpressionAttributeValues = update.ExpressionAttributeValues
                 }
             })
         );

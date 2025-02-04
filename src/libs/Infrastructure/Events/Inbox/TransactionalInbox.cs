@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace Acme.Infrastructure.Events.Inbox;
 
-internal sealed partial class TransactionalInbox(
+internal sealed class TransactionalInbox(
     IAmazonDb amazonDb,
     IOptionsSnapshot<InboxOptions> options
 )
