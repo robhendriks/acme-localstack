@@ -1,8 +1,7 @@
-using System.Text.Json;
 using Acme.Application;
 using Acme.Application.Orders.Commands;
-using Acme.Domain.Orders;
 using Acme.Framework;
+using Acme.Framework.Results;
 using Acme.Infrastructure.Events.Outbox;
 using Acme.Infrastructure.Orders;
 using Acme.Persistence.Common.Storage;
@@ -45,14 +44,6 @@ public sealed class Function
         var sender = _serviceProvider.GetRequiredService<ISender>();
         var result = await sender.Send(new CreateOrderCommand(), cts.Token);
 
-        if (result.IsFailed)
-        {
-            return new APIGatewayProxyResponse
-            {
-                StatusCode = 409
-            };
-        }
-
-        return new APIGatewayProxyResponse { StatusCode = 201 };
+        return result.ToApiGatewayProxyResponse();
     }
 }

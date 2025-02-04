@@ -1,12 +1,4 @@
 ﻿POST {{url}}/orders
-Content-Type: application/json
-
-{
-  "arrivalDate": "2025-02-01T14:00:00.000Z",
-  "departureDate": "2025-02-03T11:00:00.000Z",
-  "adults": 2,
-  "children": 0
-}
 
 ###
 
