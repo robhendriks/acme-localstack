@@ -21,13 +21,17 @@ internal sealed partial class TransactionalInbox(
             {
                 { "id", new AttributeValue { S = domainEvent.Id.ToString("D") } },
             },
-            UpdateExpression = "SET ttl = :ttl",
+            UpdateExpression = "SET #time_to_live = :time_to_live",
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
                 {
-                    ":ttl",
+                    ":time_to_live",
                     new AttributeValue { N = AmazonDbUtil.CalculateTtl().ToString(CultureInfo.InvariantCulture) }
-                },
+                }
+            },
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#time_to_live", "ttl" }
             }
         });
     }
