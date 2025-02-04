@@ -5,28 +5,20 @@ import {
   IHttpApi,
 } from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
-import { AssetCode, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
+import { Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
-import { resolve } from "path";
 import { importHttpApi } from "../../util/http-api";
 import { AcmeOutbox } from "../events/acme-outbox";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { AcmeEntityDb } from "../storage/acme-entity-db";
 import { pascalCase } from "pascal-case";
 import kebabCase from "kebab-case";
+import { createHandler, zipAssetResolver } from "../../util/lambda";
 
 export interface AcmeFunctionProps {
   projectName: string;
   handler?: string;
   runtime?: Runtime;
-}
-
-function zipAssetResolver(projectName: string): AssetCode {
-  return Code.fromAsset(resolve("../", "publish", `${projectName}.zip`), {});
-}
-
-function createHandler(rootNamespace: string, projectName: string): string {
-  return `${rootNamespace}.${projectName}::${rootNamespace}.${projectName}.Function::FunctionHandler`;
 }
 
 export class AcmeFunction extends Construct {

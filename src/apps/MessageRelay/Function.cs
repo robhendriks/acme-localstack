@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
-namespace Acme.OutboxProcessor;
+namespace Acme.MessageRelay;
 
 public sealed class Function
 {
@@ -26,6 +26,11 @@ public sealed class Function
 #endif
 
         var response = new SQSBatchResponse();
+
+        foreach (var record in sqsEvent.Records)
+        {
+            context.Logger.LogInformation($"Record {record.Body}");
+        }
 
         return Task.FromResult(response);
     }
