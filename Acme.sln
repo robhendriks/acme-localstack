@@ -14,8 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{9142DC77-5
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apis", "apis", "{1983A2A9-8620-4F4C-A297-E599D9C7386E}"
 	ProjectSection(SolutionItems) = preProject
-		apis\OrderApi.http = apis\OrderApi.http
 		apis\http-client.env.json = apis\http-client.env.json
+		apis\Ordering.http = apis\Ordering.http
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GetOrder", "src\apps\GetOrder\GetOrder.csproj", "{E8EE7291-B6E4-433F-B302-50AC2F69A0B5}"

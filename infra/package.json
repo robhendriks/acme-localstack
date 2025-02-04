@@ -16,7 +16,7 @@
     "cdk:ordering": "run-s dotnet:publish cdk:synth:ordering cdk:deploy:ordering",
     "cdk:synth:ordering": "cross-env ACME_STACKS=ordering cdklocal synth acme-ordering",
     "cdk:deploy:ordering": "cross-env ACME_STACKS=ordering cdklocal deploy --profile localstack --require-approval never",
-    "bootstrap": "cross-env ACME_STACKS=infra cdklocal bootstrap --profile localstack"
+    "cdk:bootstrap": "cross-env ACME_STACKS=infra cdklocal bootstrap --profile localstack"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
