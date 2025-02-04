@@ -84,3 +84,7 @@ npm run cdk:ordering
 - GetOrder Lambda
 - OrderRequestedProcessor Lambda
     - SQS Queue + DLQ
+
+## HTTP Apis
+
+- [Ordering](apis/Ordering.http)
