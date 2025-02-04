@@ -1,13 +1,9 @@
-using System.Globalization;
 using System.Net;
-using System.Text.Json;
 using Acme.Domain.Events;
 using Acme.Framework;
 using Acme.Infrastructure.Events;
 using Acme.Infrastructure.Events.Outbox;
 using Acme.Persistence.Common.Storage;
-using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
 using Amazon.SimpleNotificationService;
