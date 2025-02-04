@@ -45,7 +45,10 @@ export class AcmeFunction extends Construct {
       runtime: props.runtime ?? Runtime.DOTNET_8,
     });
 
-    this.function.addEnvironment("ACME_APPLICATION", this.node.id);
+    this.function.addEnvironment(
+      "ACME_APPLICATION",
+      generateName(this.function.node)
+    );
   }
 
   private getHttpApi(): IHttpApi {
@@ -102,7 +105,7 @@ export class AcmeFunction extends Construct {
     topic.outbox.table.grantFullAccess(this.function);
 
     new StringParameter(this, "param-outbox-table-name", {
-      parameterName: `/${this.node.id}/Outbox/TableName`,
+      parameterName: `/${generateName(this.function.node)}/Outbox/TableName`,
       stringValue: topic.outbox.table.tableName,
     });
 
@@ -116,7 +119,7 @@ export class AcmeFunction extends Construct {
     }
 
     new StringParameter(this, "param-inbox-table-name", {
-      parameterName: `/${this.node.id}/Inbox/TableName`,
+      parameterName: `/${generateName(this.function.node)}/Inbox/TableName`,
       stringValue: topic.inbox.table.tableName,
     });
 
@@ -155,7 +158,9 @@ export class AcmeFunction extends Construct {
 
   public addEntityDb(db: AcmeEntityDb): AcmeFunction {
     new StringParameter(this, `param-${kebabCase(db.entityName)}-table-name`, {
-      parameterName: `/${this.node.id}/${pascalCase(db.entityName)}/TableName`,
+      parameterName: `/${generateName(this.function.node)}/${pascalCase(
+        db.entityName
+      )}/TableName`,
       stringValue: db.table.tableName,
     });
 

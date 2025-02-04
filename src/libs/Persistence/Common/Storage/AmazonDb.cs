@@ -81,15 +81,5 @@ internal sealed partial class AmazonDb(IAmazonDynamoDB dynamoDb, ILogger<AmazonD
 
 public static class AmazonDbUtil
 {
-    public static long CalculateTtl(TimeSpan? offset = null)
-    {
-        var ttl = DateTimeOffset.UtcNow;
-
-        if (offset != null)
-        {
-            ttl += offset.Value;
-        }
-
-        return ttl.ToUnixTimeSeconds();
-    }
+    public static long TimeToLive() => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 }

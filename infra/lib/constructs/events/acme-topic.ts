@@ -37,11 +37,8 @@ export class AcmeTopic extends Construct {
     this.topic.addSubscription(new SqsSubscription(this.inbox.queue));
 
     // Configure SNS in outbox processor
-    this.topic.grantPublish(this.outbox.processorFunction);
+    this.topic.grantPublish(this.outbox.function);
 
-    this.outbox.processorFunction.addEnvironment(
-      "SNS_TOPIC_ARN",
-      this.topic.topicArn
-    );
+    this.outbox.function.addEnvironment("SNS_TOPIC_ARN", this.topic.topicArn);
   }
 }

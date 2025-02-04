@@ -12,6 +12,7 @@ import { Queue } from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
 import { zipAssetResolver, createHandler } from "../../util/lambda";
 import { generateName } from "../../util/construct";
+import { StringParameter } from "aws-cdk-lib/aws-ssm";
 
 export interface AcmeOutboxProps {
   topicName: string;
@@ -21,13 +22,14 @@ export class AcmeOutbox extends Construct {
   public readonly table: TableV2;
   public readonly deadLetterQueue: Queue;
   public readonly queue: Queue;
-  public readonly processorFunction: Function;
+  public readonly function: Function;
   public readonly pipeRole: Role;
   public readonly pipe: CfnPipe;
 
   constructor(scope: Construct, id: string, props: AcmeOutboxProps) {
     super(scope, id);
 
+    // DynamoDB Table
     this.table = new TableV2(this, "table", {
       tableName: generateName(this.node, "table"),
       partitionKey: { name: "id", type: AttributeType.STRING },
@@ -36,6 +38,7 @@ export class AcmeOutbox extends Construct {
       timeToLiveAttribute: "ttl",
     });
 
+    // Queue + DLQ
     this.deadLetterQueue = new Queue(this, "dlq", {
       queueName: generateName(this.node, "dlq"),
     });
@@ -48,22 +51,27 @@ export class AcmeOutbox extends Construct {
       },
     });
 
-    this.processorFunction = new Function(this, "function", {
+    // Outbox processor function
+    this.function = new Function(this, "function", {
       functionName: generateName(this.node, "function"),
       code: zipAssetResolver("OutboxProcessor"),
       handler: createHandler("Acme", "OutboxProcessor"),
       runtime: Runtime.DOTNET_8,
     });
 
-    // Configure outbox table in processor
-    this.processorFunction.addEnvironment(
-      "OUTBOX_TABLE_NAME",
-      this.table.tableName
+    this.function.addEnvironment(
+      "ACME_APPLICATION",
+      generateName(this.function.node)
     );
 
+    new StringParameter(this, "param-outbox-table-name", {
+      parameterName: `/${generateName(this.function.node)}/Outbox/TableName`,
+      stringValue: this.table.tableName,
+    });
+
     // Subscribe processor function to outbox queue
-    this.queue.grantConsumeMessages(this.processorFunction);
-    this.processorFunction.addEventSource(
+    this.queue.grantConsumeMessages(this.function);
+    this.function.addEventSource(
       new SqsEventSource(this.queue, {
         reportBatchItemFailures: true,
       })

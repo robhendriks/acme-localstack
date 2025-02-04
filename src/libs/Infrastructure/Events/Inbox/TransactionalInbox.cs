@@ -17,7 +17,7 @@ internal sealed class TransactionalInbox(
         amazonDb.Update(new UpdateItemRequest
         {
             TableName = options.Value.TableName,
-            Key = new Dictionary<string, AttributeValue>()
+            Key = new Dictionary<string, AttributeValue>
             {
                 { "id", new AttributeValue { S = domainEvent.Id.ToString("D") } },
             },
@@ -29,7 +29,7 @@ internal sealed class TransactionalInbox(
             {
                 {
                     ":t",
-                    new AttributeValue { N = AmazonDbUtil.CalculateTtl().ToString(CultureInfo.InvariantCulture) }
+                    new AttributeValue { N = AmazonDbUtil.TimeToLive().ToString(CultureInfo.InvariantCulture) }
                 }
             },
             UpdateExpression = "SET #T = :t",

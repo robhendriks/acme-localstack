@@ -9,6 +9,7 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
+    "cdk:all": "run-s cdk:bootstrap cdk:infra cdk:ordering",
     "cdk:infra": "run-s cdk:synth:infra cdk:deploy:infra",
     "cdk:synth:infra": "cross-env ACME_STACKS=infra cdklocal synth acme-infra",
     "cdk:deploy:infra": "cross-env ACME_STACKS=infra cdklocal deploy --profile localstack --require-approval never",

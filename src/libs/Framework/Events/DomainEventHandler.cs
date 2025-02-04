@@ -64,11 +64,7 @@ public abstract class DomainEventHandler<TContent> : IDomainEventHandler<TConten
 
                 inbox.Consume(domainEvent);
 
-                var saveResult = await amazonDb.SaveChangesAsync(cts.Token);
-                if (saveResult.IsFailed)
-                {
-                    throw new InvalidOperationException("Failed to commit DynamoDb transaction");
-                }
+                await amazonDb.SaveChangesOrThrowAsync(cts.Token);
             }
             catch (Exception ex)
             {

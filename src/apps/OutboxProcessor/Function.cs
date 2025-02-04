@@ -2,12 +2,16 @@ using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Acme.Domain.Events;
+using Acme.Framework;
 using Acme.Infrastructure.Events;
+using Acme.Infrastructure.Events.Outbox;
+using Acme.Persistence.Common.Storage;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
 using Amazon.SimpleNotificationService;
+using Microsoft.Extensions.DependencyInjection;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -15,6 +19,22 @@ namespace Acme.OutboxProcessor;
 
 public sealed class Function
 {
+    private readonly IServiceProvider _serviceProvider;
+
+    public Function()
+    {
+        var ctx = AcmeContext.FromEnvironment();
+
+        var services = new ServiceCollection();
+
+        services
+            .AddAcmeFramework(ctx)
+            .AddAcmeStorage()
+            .AddAcmeOutbox();
+
+        _serviceProvider = services.BuildServiceProvider();
+    }
+
     public async Task<SQSBatchResponse> FunctionHandler(SQSEvent sqsEvent, ILambdaContext context)
     {
 #if DEBUG
@@ -23,8 +43,8 @@ public sealed class Function
         using var cts = new CancellationTokenSource(context.RemainingTime);
 #endif
 
-        var amazonDb = new AmazonDynamoDBClient();
-        var amazonDbTableName = Environment.GetEnvironmentVariable("OUTBOX_TABLE_NAME");
+        var outbox = _serviceProvider.GetRequiredService<ITransactionalOutbox>();
+        var amazonDb = _serviceProvider.GetRequiredService<IAmazonDb>();
 
         var amazonSns = new AmazonSimpleNotificationServiceClient();
         var amazonSnsTopicArn = Environment.GetEnvironmentVariable("SNS_TOPIC_ARN")!;
@@ -48,12 +68,9 @@ public sealed class Function
                     cts.Token
                 );
 
-                await ProcessDomainEventInOutbox(
-                    domainEvent,
-                    amazonDb,
-                    amazonDbTableName,
-                    cts.Token
-                );
+                outbox.Consume(domainEvent);
+
+                await amazonDb.SaveChangesOrThrowAsync(cts.Token);
             }
             catch (Exception ex)
             {
@@ -86,39 +103,6 @@ public sealed class Function
         {
             throw new InvalidOperationException(
                 $"Failed to publish SNS message to topic '{amazonSnsTopicArn}'."
-            );
-        }
-    }
-
-    private static async Task ProcessDomainEventInOutbox(
-        IDomainEvent domainEvent,
-        AmazonDynamoDBClient dynamoDb,
-        string? dynamoDbTableName,
-        CancellationToken cancellationToken)
-    {
-        var ttl = DateTimeOffset.UtcNow.AddHours(2).ToUnixTimeSeconds();
-
-        var result = await dynamoDb.UpdateItemAsync(
-            dynamoDbTableName,
-            new Dictionary<string, AttributeValue>
-            {
-                ["id"] = new() { S = domainEvent.Id.ToString("D") }
-            },
-            new Dictionary<string, AttributeValueUpdate>
-            {
-                ["ttl"] = new()
-                {
-                    Action = AttributeAction.PUT,
-                    Value = new AttributeValue { N = ttl.ToString(CultureInfo.InvariantCulture) }
-                }
-            },
-            cancellationToken
-        );
-
-        if (result.HttpStatusCode != HttpStatusCode.OK)
-        {
-            throw new InvalidOperationException(
-                $"Failed to update domain event '{domainEvent.Id}' in DynamoDB table '{dynamoDbTableName}'"
             );
         }
     }

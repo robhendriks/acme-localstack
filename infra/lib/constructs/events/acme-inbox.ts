@@ -12,12 +12,13 @@ import { zipAssetResolver, createHandler } from "../../util/lambda";
 import { AcmeTopic } from "./acme-topic";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { generateName } from "../../util/construct";
+import { StringParameter } from "aws-cdk-lib/aws-ssm";
 
 export class AcmeInbox extends Construct {
   public readonly table: TableV2;
   public readonly deadLetterQueue: Queue;
   public readonly queue: Queue;
-  public readonly processorFunction: Function;
+  public readonly function: Function;
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
@@ -42,24 +43,26 @@ export class AcmeInbox extends Construct {
       },
     });
 
-    this.processorFunction = new Function(this, "function", {
+    this.function = new Function(this, "function", {
       functionName: generateName(this.node, "function"),
       code: zipAssetResolver("InboxProcessor"),
       handler: createHandler("Acme", "InboxProcessor"),
       runtime: Runtime.DOTNET_8,
     });
 
-    this.processorFunction.addEventSource(
+    this.function.addEventSource(
       new SqsEventSource(this.queue, {
         reportBatchItemFailures: true,
       })
     );
 
-    this.processorFunction.addEnvironment(
-      "INBOX_TABLE_NAME",
-      this.table.tableName
-    );
+    this.function.addEnvironment("INBOX_TABLE_NAME", this.table.tableName);
 
-    this.table.grantFullAccess(this.processorFunction);
+    // new StringParameter(this, "param-inbox-table-name", {
+    //   parameterName: `/${this.function.node.id}/Inbox/TableName`,
+    //   stringValue: this.table.tableName,
+    // });
+
+    this.table.grantFullAccess(this.function);
   }
 }
