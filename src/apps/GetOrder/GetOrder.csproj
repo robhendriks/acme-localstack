@@ -19,4 +19,11 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\libs\Application\Application.csproj" />
+    <ProjectReference Include="..\..\libs\Framework\Framework.csproj" />
+    <ProjectReference Include="..\..\libs\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\..\libs\Persistence\Persistence.csproj" />
+  </ItemGroup>
+
 </Project>

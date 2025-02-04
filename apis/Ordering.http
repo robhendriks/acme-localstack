@@ -2,7 +2,7 @@
 
 ###
 
-@orderId = f8ca7d35-84bb-46ac-bf9c-9bf56137424a
+@orderId = 4fbc742e-7820-48f0-b020-75a404a51a87
 
 GET {{url}}/orders/{{orderId}}
 Content-Type: application/json

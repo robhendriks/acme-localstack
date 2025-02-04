@@ -1,5 +1,14 @@
+using Acme.Application;
+using Acme.Application.Orders.Commands;
+using Acme.Application.Orders.Queries;
+using Acme.Framework;
+using Acme.Framework.Results;
+using Acme.Infrastructure.Events.Outbox;
+using Acme.Infrastructure.Orders;
+using Acme.Persistence.Common.Storage;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -12,15 +21,32 @@ public sealed class Function
 
     public Function()
     {
+        var ctx = AcmeContext.FromEnvironment();
         var services = new ServiceCollection();
+
+        services
+            .AddAcmeFramework(ctx)
+            .AddAcmeStorage()
+            .AddAcmeOutbox()
+            .AddAcmeOrders()
+            .AddAcmeApplication();
 
         _serviceProvider = services.BuildServiceProvider();
     }
 
-    public Task<APIGatewayProxyResponse> FunctionHandler(APIGatewayProxyRequest request, ILambdaContext context)
+    public async Task<APIGatewayProxyResponse> FunctionHandler(APIGatewayProxyRequest request, ILambdaContext context)
     {
-        context.Logger.LogInformation("Hello World!");
+#if DEBUG
+        using var cts = new CancellationTokenSource();
+#else
+        using var cts = new CancellationTokenSource(context.RemainingTime);
+#endif
 
-        return Task.FromResult(new APIGatewayProxyResponse { StatusCode = 200 });
+        var orderId = Guid.Parse(request.PathParameters["orderId"]);
+
+        var sender = _serviceProvider.GetRequiredService<ISender>();
+        var result = await sender.Send(new GetOrderQuery(orderId), cts.Token);
+
+        return result.ToApiGatewayProxyResponse();
     }
 }
