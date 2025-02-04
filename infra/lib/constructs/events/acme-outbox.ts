@@ -4,10 +4,13 @@ import {
   StreamViewType,
   TableV2,
 } from "aws-cdk-lib/aws-dynamodb";
+import { Queue } from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
 
 export class AcmeOutbox extends Construct {
   public readonly table: TableV2;
+  public readonly deadLetterQueue: Queue;
+  public readonly queue: Queue;
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
