@@ -55,16 +55,20 @@ endpoint_url = http://localhost:4566
 
 When CDK is bootstrapped you can use the following command to deploy the core infra stack:
 
-- ApiGatewayV2
-- EventBridge
-
 ```sh
 npm run cdk:infra
 ```
 
+- ApiGatewayV2
+- EventBridge
+
 #### Deploy Ordering Stack
 
 When the core infra is deployed, run the following command to deploy the `ordering` stack:
+
+```sh
+npm run cdk:ordering
+```
 
 - SNS Topic
 - Inbox
@@ -80,7 +84,3 @@ When the core infra is deployed, run the following command to deploy the `orderi
 - GetOrder Lambda
 - OrderRequestedProcessor Lambda
     - SQS Queue + DLQ
-
-```sh
-npm run cdk:ordering
-```
