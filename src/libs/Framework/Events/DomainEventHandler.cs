@@ -34,8 +34,8 @@ public abstract class DomainEventHandler<TContent> : IDomainEventHandler<TConten
                 var content = domainEvent.ToT<TContent>();
                 var context = new DomainEventHandlerContext<TContent>(content, lambdaContext);
 
-                await HandleAsync(context, cts.Token).ConfigureAwait(false);
-                
+                await HandleAsync(context, cts.Token);
+
                 // TODO: remove from inbox
             }
             catch (Exception ex)
