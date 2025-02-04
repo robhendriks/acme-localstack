@@ -5,7 +5,9 @@
       "commandName": "Executable",
       "commandLineArgs": "--port 5050",
       "executablePath": "%USERPROFILE%\\.dotnet\\tools\\dotnet-lambda-test-tool-8.0.exe",
-      "environmentVariables": {}
+      "environmentVariables": {
+        "ACME_APPLICATION": "acme-ordering-create-order"
+      }
     }
   }
 }

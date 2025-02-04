@@ -10,6 +10,8 @@ import { AssetCode, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 import { resolve } from "path";
 import { importHttpApi } from "../../util/http-api";
+import { AcmeOutbox } from "../events/acme-outbox";
+import { StringParameter } from "aws-cdk-lib/aws-ssm";
 
 export interface AcmeFunctionProps {
   projectName: string;
@@ -40,6 +42,8 @@ export class AcmeFunction extends Construct {
       handler: props.handler ?? createHandler("Acme", props.projectName),
       runtime: props.runtime ?? Runtime.DOTNET_8,
     });
+
+    this.function.addEnvironment("ACME_APPLICATION", this.node.id);
   }
 
   private getHttpApi(): IHttpApi {
@@ -58,6 +62,17 @@ export class AcmeFunction extends Construct {
       httpApi: this.getHttpApi(),
       routeKey: HttpRouteKey.with(path, method),
       integration: this.getHttpIntegration(),
+    });
+
+    return this;
+  }
+
+  public addOutbox(outbox: AcmeOutbox): AcmeFunction {
+    outbox.table.grantFullAccess(this.function);
+
+    new StringParameter(this, `${this.node.id}-param-outbox-table-name`, {
+      parameterName: `/${this.node.id}/Outbox/TableName`,
+      stringValue: outbox.table.tableName,
     });
 
     return this;

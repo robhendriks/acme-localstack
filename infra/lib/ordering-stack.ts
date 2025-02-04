@@ -5,12 +5,14 @@ import { AcmeFunction } from "./constructs/lambda/acme-function";
 import { AcmeOutbox } from "./constructs/events/acme-outbox";
 
 export class OrderingStack extends Stack {
+  public outbox: AcmeOutbox;
   public createOrderFunction: AcmeFunction;
   public getOrderFunction: AcmeFunction;
-  public outbox: AcmeOutbox;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
+
+    this.outbox = new AcmeOutbox(this, `${this.node.id}-outbox`);
 
     this.createOrderFunction = new AcmeFunction(
       this,
@@ -26,6 +28,8 @@ export class OrderingStack extends Stack {
       HttpMethod.POST
     );
 
+    this.createOrderFunction.addOutbox(this.outbox);
+
     this.getOrderFunction = new AcmeFunction(
       this,
       `${this.node.id}-get-order`,
@@ -37,7 +41,5 @@ export class OrderingStack extends Stack {
       "/orders/{orderId}",
       HttpMethod.GET
     );
-
-    this.outbox = new AcmeOutbox(this, `${this.node.id}-outbox`);
   }
 }

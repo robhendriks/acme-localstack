@@ -18,5 +18,10 @@
     <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.1" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\libs\Framework\Framework.csproj" />
+    <ProjectReference Include="..\..\libs\Infrastructure\Infrastructure.csproj" />
+  </ItemGroup>
   
 </Project>
