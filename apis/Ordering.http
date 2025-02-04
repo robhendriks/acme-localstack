@@ -1,4 +1,7 @@
 ﻿POST {{apiUrl}}/orders
+Content-Type: text/plain
+
+This is a custom order.
 
 ###
 
