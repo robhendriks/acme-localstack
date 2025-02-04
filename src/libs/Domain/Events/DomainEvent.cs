@@ -22,6 +22,11 @@ public sealed class DomainEvent : IDomainEvent
     public required string Topic { get; init; }
     public required DateTime CreatedAt { get; init; }
 
+    public T ToT<T>() => JsonSerializer.Deserialize<T>(Content, JsonSerializerOptions)!;
+
+    public override string ToString() =>
+        $"{{{nameof(Id)}={Id}, {nameof(EventName)}={EventName}, {nameof(Topic)}={Topic}}}";
+
     public static DomainEvent Create<TPayload>(string eventName, TPayload payload, string? topic = null)
     {
         var jsonContent = JsonSerializer.Serialize(payload, JsonSerializerOptions);

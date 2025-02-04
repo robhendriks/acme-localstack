@@ -18,5 +18,10 @@
     <PackageReference Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.1" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\libs\Framework\Framework.csproj" />
+    <ProjectReference Include="..\..\libs\Infrastructure\Infrastructure.csproj" />
+  </ItemGroup>
   
 </Project>

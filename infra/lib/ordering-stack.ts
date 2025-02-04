@@ -62,5 +62,6 @@ export class OrderingStack extends Stack {
     );
 
     this.orderRequestedProcessorFunction.addQueue();
+    this.orderRequestedProcessorFunction.addInbox(this.topic);
   }
 }

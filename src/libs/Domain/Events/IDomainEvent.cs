@@ -8,4 +8,6 @@ public interface IDomainEvent
     string ContentHash { get; }
     string Topic { get; }
     DateTime CreatedAt { get; }
+
+    T ToT<T>();
 }

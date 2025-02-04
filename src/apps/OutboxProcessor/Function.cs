@@ -15,13 +15,6 @@ namespace Acme.OutboxProcessor;
 
 public sealed class Function
 {
-    private static readonly JsonSerializerOptions JsonSerializerOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false
-    };
-
     public async Task<SQSBatchResponse> FunctionHandler(SQSEvent sqsEvent, ILambdaContext context)
     {
 #if DEBUG
@@ -46,7 +39,7 @@ public sealed class Function
                     $"Relay SQS message '{record.MessageId}' to SNS topic '{amazonSnsTopicArn}'"
                 );
 
-                var domainEvent = CreateDomainEvent(record);
+                var domainEvent = DomainEventSerializer.DeserializeDynamoDbStreamEvent(record.Body);
 
                 await RelaySqsMessageToSns(
                     amazonSns,
@@ -75,19 +68,13 @@ public sealed class Function
         return response;
     }
 
-    private static IDomainEvent CreateDomainEvent(SQSEvent.SQSMessage sqsMessage)
-    {
-        var dynamoDbEvent = JsonSerializer.Deserialize<DynamoDbEvent>(sqsMessage.Body, JsonSerializerOptions)!;
-        return DomainEventMapper.FromMap(dynamoDbEvent.DynamoDb.NewImage);
-    }
-
     private static async Task RelaySqsMessageToSns(
         AmazonSimpleNotificationServiceClient amazonSns,
         string amazonSnsTopicArn,
         IDomainEvent domainEvent,
         CancellationToken cancellationToken)
     {
-        var domainEventJson = JsonSerializer.Serialize(domainEvent, JsonSerializerOptions);
+        var domainEventJson = DomainEventSerializer.Serialize(domainEvent);
 
         var result = await amazonSns.PublishAsync(
             amazonSnsTopicArn,
@@ -135,14 +122,4 @@ public sealed class Function
             );
         }
     }
-}
-
-file sealed record DynamoDbEventRecord
-{
-    public required Dictionary<string, AttributeValue> NewImage { get; init; }
-}
-
-file sealed record DynamoDbEvent
-{
-    public required DynamoDbEventRecord DynamoDb { get; init; }
 }

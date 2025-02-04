@@ -1,27 +1,20 @@
+using Acme.Domain.Orders.Events;
+using Acme.Framework.Events;
 using Amazon.Lambda.Core;
-using Amazon.Lambda.SQSEvents;
+using FluentResults;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
 namespace Acme.OrderRequestedProcessor;
 
-public sealed class Function
+public sealed class Function : DomainEventHandler<OrderRequested>
 {
-    public Task<SQSBatchResponse> FunctionHandler(SQSEvent sqsEvent, ILambdaContext context)
+    public override Task<Result> HandleAsync(
+        DomainEventHandlerContext<OrderRequested> context,
+        CancellationToken cancellationToken = default)
     {
-#if DEBUG
-        using var cts = new CancellationTokenSource();
-#else
-        using var cts = new CancellationTokenSource(context.RemainingTime);
-#endif
+        context.LambdaContext.Logger.LogInformation($"Handling OrderRequested event {context.Content}");
 
-        var response = new SQSBatchResponse();
-
-        foreach (var record in sqsEvent.Records)
-        {
-            context.Logger.LogInformation($"Processing record {record.Body}");
-        }
-
-        return Task.FromResult(response);
+        return Task.FromResult(Result.Ok());
     }
 }

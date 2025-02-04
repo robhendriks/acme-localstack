@@ -16,6 +16,8 @@ import { createHandler, zipAssetResolver } from "../../util/lambda";
 import { AcmeTopic } from "../events/acme-topic";
 import { Queue } from "aws-cdk-lib/aws-sqs";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
+import { Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
+import { CfnPipe } from "aws-cdk-lib/aws-pipes";
 
 export interface AcmeFunctionProps {
   projectName: string;
@@ -57,6 +59,11 @@ export class AcmeFunction extends Construct {
   }
 
   public addQueue(): AcmeFunction {
+    if (this.queue) {
+      console.warn("Queue already exists, skipping creation.");
+      return this;
+    }
+
     this.deadLetterQueue = new Queue(this, `${this.node.id}-dlq`, {
       queueName: `${this.node.id}-dlq`,
     });
@@ -97,7 +104,41 @@ export class AcmeFunction extends Construct {
   }
 
   public addInbox(topic: AcmeTopic): AcmeFunction {
-    // TODO: add event source to function
+    if (!this.queue) {
+      console.warn("Queue not configured, skipping inbox link.");
+      return this;
+    }
+
+    const pipeRole = new Role(this, `${this.node.id}-role-pipe`, {
+      roleName: `${this.node.id}-role-pipe`,
+      assumedBy: new ServicePrincipal("pipes.amazonaws.com"),
+    });
+
+    new CfnPipe(this, `${this.node.id}-pipe`, {
+      name: `${this.node.id}-pipe`,
+      roleArn: pipeRole.roleArn,
+      source: topic.inbox.table.tableStreamArn!,
+      sourceParameters: {
+        dynamoDbStreamParameters: {
+          startingPosition: "LATEST",
+          batchSize: 10,
+        },
+        filterCriteria: {
+          filters: [
+            {
+              pattern: JSON.stringify({
+                eventName: ["INSERT"],
+                dynamodb: {
+                  NewImage: { topic: { S: [topic.topicName] } },
+                },
+              }),
+            },
+          ],
+        },
+      },
+      target: this.queue.queueArn,
+    });
+
     return this;
   }
 
