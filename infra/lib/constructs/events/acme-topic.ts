@@ -39,6 +39,7 @@ export class AcmeTopic extends Construct {
       partitionKey: { name: "id", type: AttributeType.STRING },
       dynamoStream: StreamViewType.NEW_AND_OLD_IMAGES,
       removalPolicy: RemovalPolicy.DESTROY,
+      timeToLiveAttribute: "ttl",
     });
 
     this.deadLetterQueue = new Queue(this, `${this.node.id}-dlq`, {
@@ -68,6 +69,10 @@ export class AcmeTopic extends Construct {
     this.messageRelayFunction.addEnvironment(
       "SNS_TOPIC_ARN",
       this.topic.topicArn
+    );
+    this.messageRelayFunction.addEnvironment(
+      "OUTBOX_TABLE_NAME",
+      this.outboxTable.tableName
     );
 
     this.queue.grantConsumeMessages(this.messageRelayFunction);

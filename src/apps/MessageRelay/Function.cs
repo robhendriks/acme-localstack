@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Acme.Domain.Events;
@@ -54,7 +55,7 @@ public sealed class Function
                     cts.Token
                 );
 
-                await DeleteFromOutbox(
+                await ProcessDomainEventInOutbox(
                     domainEvent,
                     amazonDb,
                     amazonDbTableName,
@@ -96,19 +97,43 @@ public sealed class Function
 
         if (result.HttpStatusCode != HttpStatusCode.OK)
         {
-            throw new InvalidOperationException($"Failed to publish SNS message to topic '{amazonSnsTopicArn}'.");
+            throw new InvalidOperationException(
+                $"Failed to publish SNS message to topic '{amazonSnsTopicArn}'."
+            );
         }
     }
 
-    private static Task DeleteFromOutbox(
+    private static async Task ProcessDomainEventInOutbox(
         IDomainEvent domainEvent,
-        AmazonDynamoDBClient cancellationToken,
-        string? amazonDbTableName,
-        CancellationToken ctsToken)
+        AmazonDynamoDBClient dynamoDb,
+        string? dynamoDbTableName,
+        CancellationToken cancellationToken)
     {
-        // TODO: Implement
+        var ttl = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds();
 
-        return Task.CompletedTask;
+        var result = await dynamoDb.UpdateItemAsync(
+            dynamoDbTableName,
+            new Dictionary<string, AttributeValue>
+            {
+                ["id"] = new() { S = domainEvent.Id.ToString("D") }
+            },
+            new Dictionary<string, AttributeValueUpdate>
+            {
+                ["ttl"] = new()
+                {
+                    Action = AttributeAction.PUT,
+                    Value = new AttributeValue { N = ttl.ToString(CultureInfo.InvariantCulture) }
+                }
+            },
+            cancellationToken
+        );
+
+        if (result.HttpStatusCode != HttpStatusCode.OK)
+        {
+            throw new InvalidOperationException(
+                $"Failed to update domain event '{domainEvent.Id}' in DynamoDB table '{dynamoDbTableName}'"
+            );
+        }
     }
 }
 
