@@ -1,80 +1,125 @@
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
-using Acme.Domain.InboxOutbox;
+using Acme.Domain.Events;
+using Acme.Infrastructure.Events;
+using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
 using Amazon.SimpleNotificationService;
-using Amazon.SimpleNotificationService.Model;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
 namespace Acme.OutboxProcessor;
 
-public class Function
+public sealed class Function
 {
-    private readonly AmazonSimpleNotificationServiceClient _sns = new();
-
-    public async Task FunctionHandler(SQSEvent sqsEvent, ILambdaContext context)
+    public async Task<SQSBatchResponse> FunctionHandler(SQSEvent sqsEvent, ILambdaContext context)
     {
-        var messages = CreateMessages(sqsEvent.Records, context);
+#if DEBUG
+        using var cts = new CancellationTokenSource();
+#else
+        using var cts = new CancellationTokenSource(context.RemainingTime);
+#endif
 
-        var snsTopicArn = Environment.GetEnvironmentVariable("SNS_TOPIC_ARN")
-                          ?? throw new InvalidOperationException("Environment variable 'SNS_TOPIC_ARN' not set.");
+        var amazonDb = new AmazonDynamoDBClient();
+        var amazonDbTableName = Environment.GetEnvironmentVariable("OUTBOX_TABLE_NAME");
 
-        var request = new PublishBatchRequest
+        var amazonSns = new AmazonSimpleNotificationServiceClient();
+        var amazonSnsTopicArn = Environment.GetEnvironmentVariable("SNS_TOPIC_ARN")!;
+
+        var response = new SQSBatchResponse();
+
+        foreach (var record in sqsEvent.Records)
         {
-            TopicArn = snsTopicArn,
-            PublishBatchRequestEntries = messages.ConvertAll(m => new PublishBatchRequestEntry
+            try
             {
-                Id = m.Id.ToString("D"),
-                Message = JsonSerializer.Serialize(m, Message.JsonSerializerOptions),
-                MessageDeduplicationId = m.Id.ToString("D"),
-            })
-        };
+                context.Logger.LogInformation(
+                    $"Relay SQS message '{record.MessageId}' to SNS topic '{amazonSnsTopicArn}'"
+                );
 
-        var snsResponse = await _sns.PublishBatchAsync(request);
+                var domainEvent = DomainEventSerializer.DeserializeDynamoDbStreamEvent(record.Body);
 
-        if (snsResponse.HttpStatusCode != HttpStatusCode.OK)
-        {
-            throw new InvalidOperationException("Failed to publish messages.");
+                await RelaySqsMessageToSns(
+                    amazonSns,
+                    amazonSnsTopicArn,
+                    domainEvent,
+                    cts.Token
+                );
+
+                await ProcessDomainEventInOutbox(
+                    domainEvent,
+                    amazonDb,
+                    amazonDbTableName,
+                    cts.Token
+                );
+            }
+            catch (Exception ex)
+            {
+                context.Logger.LogError(ex, "Error while processing SQS message.");
+
+                response.BatchItemFailures.Add(
+                    new SQSBatchResponse.BatchItemFailure { ItemIdentifier = record.MessageId }
+                );
+            }
         }
 
-        // TODO: DELETE outbox message or set TTL
+        return response;
     }
 
-    private static List<Message> CreateMessages(
-        List<SQSEvent.SQSMessage> sqsEventRecords, ILambdaContext context) =>
-        sqsEventRecords
-            .ConvertAll(
-                m =>
+    private static async Task RelaySqsMessageToSns(
+        AmazonSimpleNotificationServiceClient amazonSns,
+        string amazonSnsTopicArn,
+        IDomainEvent domainEvent,
+        CancellationToken cancellationToken)
+    {
+        var domainEventJson = DomainEventSerializer.Serialize(domainEvent);
+
+        var result = await amazonSns.PublishAsync(
+            amazonSnsTopicArn,
+            domainEventJson,
+            cancellationToken
+        );
+
+        if (result.HttpStatusCode != HttpStatusCode.OK)
+        {
+            throw new InvalidOperationException(
+                $"Failed to publish SNS message to topic '{amazonSnsTopicArn}'."
+            );
+        }
+    }
+
+    private static async Task ProcessDomainEventInOutbox(
+        IDomainEvent domainEvent,
+        AmazonDynamoDBClient dynamoDb,
+        string? dynamoDbTableName,
+        CancellationToken cancellationToken)
+    {
+        var ttl = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds();
+
+        var result = await dynamoDb.UpdateItemAsync(
+            dynamoDbTableName,
+            new Dictionary<string, AttributeValue>
+            {
+                ["id"] = new() { S = domainEvent.Id.ToString("D") }
+            },
+            new Dictionary<string, AttributeValueUpdate>
+            {
+                ["ttl"] = new()
                 {
-                    context.Logger.LogInformation($"Processing message: {m.Body}");
+                    Action = AttributeAction.PUT,
+                    Value = new AttributeValue { N = ttl.ToString(CultureInfo.InvariantCulture) }
+                }
+            },
+            cancellationToken
+        );
 
-                    var dynamodbStreamRecord =
-                        JsonSerializer.Deserialize<DynamoDbEvent>(m.Body, Message.JsonSerializerOptions)!;
-                    var map = dynamodbStreamRecord.DynamoDb.NewImage;
-
-                    return new Message
-                    {
-                        Id = Guid.Parse(map["id"].S),
-                        Topic = map["topic"].S,
-                        EventName = map["eventName"].S,
-                        Content = map["content"].S,
-                        ContentHash = map["contentHash"].S,
-                        CreatedAt = DateTime.Parse(map["createdAt"].S, CultureInfo.InvariantCulture,
-                            DateTimeStyles.AssumeUniversal)
-                    };
-                });
-}
-
-public class DynamoDbEventStream
-{
-    public Dictionary<string, AttributeValue> NewImage { get; set; } = null!;
-}
-
-public class DynamoDbEvent
-{
-    public DynamoDbEventStream DynamoDb { get; set; } = null!;
+        if (result.HttpStatusCode != HttpStatusCode.OK)
+        {
+            throw new InvalidOperationException(
+                $"Failed to update domain event '{domainEvent.Id}' in DynamoDB table '{dynamoDbTableName}'"
+            );
+        }
+    }
 }

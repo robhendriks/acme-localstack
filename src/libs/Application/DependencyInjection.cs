@@ -1,14 +1,18 @@
-﻿using System.Reflection;
-using Acme.Application.Common.Cqrs;
+﻿using Acme.Application.Common.Transactions;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Acme.Application;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services, Assembly[] assemblies)
+    public static IServiceCollection AddAcmeApplication(this IServiceCollection services)
     {
-        services.AddCqrsServices(assemblies);
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssemblyContaining<IApplicationLayer>();
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(TransactionalBehavior<,>));
+        });
 
         return services;
     }

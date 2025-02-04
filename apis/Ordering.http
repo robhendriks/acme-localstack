@@ -1,0 +1,8 @@
+﻿POST {{url}}/orders
+
+###
+
+@orderId = 587d56f3-901c-4381-80ad-12b3e75297d7
+
+GET {{url}}/orders/{{orderId}}
+Content-Type: application/json

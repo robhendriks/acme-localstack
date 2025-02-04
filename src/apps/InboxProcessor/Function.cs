@@ -1,7 +1,7 @@
+using System.Net;
 using System.Text.Json;
-using Acme.Domain.InboxOutbox;
-using Acme.Infrastructure.Storage;
-using Acme.Persistence.InboxOutbox;
+using Acme.Domain.Events;
+using Acme.Infrastructure.Events;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.Core;
@@ -11,41 +11,89 @@ using Amazon.Lambda.SQSEvents;
 
 namespace Acme.InboxProcessor;
 
-public class Function
+public sealed class Function
 {
-    public async Task FunctionHandler(SQSEvent sqsEvent, ILambdaContext context)
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false
+    };
+
+    public async Task<SQSBatchResponse> FunctionHandler(SQSEvent sqsEvent, ILambdaContext context)
+    {
+#if DEBUG
+        using var cts = new CancellationTokenSource();
+#else
         using var cts = new CancellationTokenSource(context.RemainingTime);
+#endif
 
-        using var client = new AmazonDynamoDBClient();
-        var db = new AmazonDatabase(client);
+        var dynamoDb = new AmazonDynamoDBClient();
+        var dynamoDbTableName = Environment.GetEnvironmentVariable("INBOX_TABLE_NAME")!;
 
-        var tableName = Environment.GetEnvironmentVariable("INBOX_TABLE_NAME")
-                        ?? throw new InvalidOperationException("Environment variable 'INBOX_TABLE_NAME' not set.");
+        var response = new SQSBatchResponse();
 
-        foreach (var sqsMessage in sqsEvent.Records)
+        foreach (var record in sqsEvent.Records)
         {
-            context.Logger.LogInformation($"Processing message {sqsMessage.Body}");
-
-            var snsMessage = JsonSerializer.Deserialize<SnsMessage>(sqsMessage.Body, Message.JsonSerializerOptions)!;
-            var message = JsonSerializer.Deserialize<Message>(snsMessage.Message, Message.JsonSerializerOptions)!;
-
-            db.Put(new PutItemRequest
+            try
             {
-                TableName = tableName,
-                Item = MessageMapper.ToMap(message)
-            });
+                var domainEvent = CreateDomainEvent(record);
+
+                context.Logger.LogInformation(
+                    $"Processing domain event {domainEvent}."
+                );
+
+                await PutDomainEvent(
+                    dynamoDb,
+                    dynamoDbTableName,
+                    domainEvent,
+                    cts.Token
+                );
+            }
+            catch (Exception ex)
+            {
+                context.Logger.LogError(ex, "Error while processing SQS message.");
+
+                response.BatchItemFailures.Add(
+                    new SQSBatchResponse.BatchItemFailure { ItemIdentifier = record.MessageId }
+                );
+            }
         }
 
-        var result = await db.SaveChangesAsync(cts.Token);
-        if (result.IsFailed)
+        return response;
+    }
+
+    private static async Task PutDomainEvent(
+        AmazonDynamoDBClient dynamoDb,
+        string dynamoDbTableName,
+        DomainEvent domainEvent,
+        CancellationToken cancellationToken)
+    {
+        var result = await dynamoDb.PutItemAsync(
+            new PutItemRequest
+            {
+                TableName = dynamoDbTableName,
+                Item = DomainEventMapper.ToMap(domainEvent)
+            },
+            cancellationToken
+        );
+
+        if (result.HttpStatusCode != HttpStatusCode.OK)
         {
-            throw new InvalidOperationException(result.Errors[0].Message);
+            throw new InvalidOperationException(
+                $"Failed to put domain event '{domainEvent.Id}' into DynamoDB table '{dynamoDbTableName}'"
+            );
         }
+    }
+
+    private static DomainEvent CreateDomainEvent(SQSEvent.SQSMessage sqsMessage)
+    {
+        var snsMessage = JsonSerializer.Deserialize<SnsMessage>(sqsMessage.Body, JsonSerializerOptions)!;
+        return JsonSerializer.Deserialize<DomainEvent>(snsMessage.Message, JsonSerializerOptions)!;
     }
 }
 
 file class SnsMessage
 {
-    public required string Message { get; set; }
+    public required string Message { get; init; }
 }

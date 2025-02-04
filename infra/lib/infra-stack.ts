@@ -1,41 +1,47 @@
-import * as cdk from "aws-cdk-lib";
+import { Stack, StackProps, Tags } from "aws-cdk-lib";
+import { DomainName, HttpApi } from "aws-cdk-lib/aws-apigatewayv2";
+import { EventBus } from "aws-cdk-lib/aws-events";
+import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { Construct } from "constructs";
-import * as apigateway from "aws-cdk-lib/aws-apigateway";
-import * as events from "aws-cdk-lib/aws-events";
-import * as ec2 from "aws-cdk-lib/aws-ec2";
-import * as ecs from "aws-cdk-lib/aws-ecs";
-import path = require("path");
+import { HTTP_API_ID_PARAMETER_PATH } from "./util/http-api";
 
-export class InfraStack extends cdk.Stack {
-  public api: apigateway.RestApi;
-  public bus: events.EventBus;
-  public vpc: ec2.Vpc;
-  public cluster: ecs.Cluster;
+export class InfraStack extends Stack {
+  public readonly httpApi: HttpApi;
+  public readonly eventBus: EventBus;
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    this.api = new apigateway.RestApi(this, "Api", {
-      restApiName: "Acme-dev",
-      deploy: true,
-      deployOptions: { stageName: "dev" },
+    this.httpApi = this.createHttpApi();
+    this.eventBus = this.createEventBus();
+  }
+
+  private createHttpApi(): HttpApi {
+    const httpApi = new HttpApi(this, `${this.node.id}-http-api`, {
+      apiName: "acme",
+      createDefaultStage: false,
     });
 
-    cdk.Tags.of(this.api).add("_custom_id_", "acme");
-
-    this.bus = new events.EventBus(this, "EventBus", {
-      eventBusName: "Acme-dev",
+    httpApi.addStage("dev", {
+      stageName: "dev",
+      autoDeploy: true,
     });
 
-    this.vpc = new ec2.Vpc(this, "Acme-dev", {
-      vpcName: "Acme-dev",
-      ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
+    Tags.of(httpApi).add("_custom_id_", "acme");
+
+    new StringParameter(this, `${this.node.id}-param-http-api-id`, {
+      parameterName: HTTP_API_ID_PARAMETER_PATH,
+      stringValue: httpApi.httpApiId,
     });
 
-    this.cluster = new ecs.Cluster(this, "Cluster", {
-      clusterName: "Acme-dev",
-      vpc: this.vpc,
-      enableFargateCapacityProviders: true,
+    return httpApi;
+  }
+
+  private createEventBus(): EventBus {
+    const eventBus = new EventBus(this, `${this.node.id}-event-bus`, {
+      eventBusName: "acme",
     });
+
+    return eventBus;
   }
 }

@@ -9,15 +9,25 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "deploy": "dotnet publish -r linux-x64 .. && cdklocal synth && cdklocal deploy --all --profile localstack --require-approval never",
-    "bootstrap": "dotnet publish -r linux-x64 .. && cdklocal bootstrap --profile localstack"
+    "cdk:infra": "run-s cdk:synth:infra cdk:deploy:infra",
+    "cdk:synth:infra": "cross-env ACME_STACKS=infra cdklocal synth acme-infra",
+    "cdk:deploy:infra": "cross-env ACME_STACKS=infra cdklocal deploy --profile localstack --require-approval never",
+    "dotnet:publish": "dotnet build -c Release .. && dotnet publish -r linux-x64 ..",
+    "cdk:ordering": "run-s dotnet:publish cdk:synth:ordering cdk:deploy:ordering",
+    "cdk:synth:ordering": "cross-env ACME_STACKS=ordering cdklocal synth acme-ordering",
+    "cdk:deploy:ordering": "cross-env ACME_STACKS=ordering cdklocal deploy --profile localstack --require-approval never",
+    "cdk:bootstrap": "cross-env ACME_STACKS=infra cdklocal bootstrap --profile localstack"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/node": "22.7.9",
     "aws-cdk": "2.176",
     "aws-cdk-local": "^2.19.1",
+    "cross-env": "^7.0.3",
     "jest": "^29.7.0",
+    "kebab-case": "^2.0.1",
+    "npm-run-all": "^4.1.5",
+    "pascal-case": "^3.1.2",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "~5.6.3"

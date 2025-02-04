@@ -1,15 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  
-    <ItemGroup>
-        <PackageReference Include="FluentResults" Version="3.16.0"/>
-        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="9.0.1" />
-        <PackageReference Include="Amazon.Extensions.Configuration.SystemsManager" Version="6.2.2" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\Domain\Domain.csproj"/>
-        <ProjectReference Include="..\Infrastructure\Infrastructure.csproj"/>
-    </ItemGroup>
-
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.405.14" />
+    <PackageReference Include="FluentResults" Version="3.16.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.1" />
+  </ItemGroup>
 </Project>

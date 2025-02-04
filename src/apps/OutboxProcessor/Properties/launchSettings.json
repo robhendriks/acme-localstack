@@ -1,13 +1,11 @@
-﻿{
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
     "OutboxProcessor": {
       "commandName": "Executable",
       "commandLineArgs": "--port 5050",
       "executablePath": "%USERPROFILE%\\.dotnet\\tools\\dotnet-lambda-test-tool-8.0.exe",
-      "environmentVariables": {
-        "AWS_PROFILE": "localstack",
-        "SNS_TOPIC_ARN": "arn:aws:sns:us-east-1:000000000000:OrderApi-dev-DefaultTopic-default"
-      }
+      "environmentVariables": {}
     }
   }
 }

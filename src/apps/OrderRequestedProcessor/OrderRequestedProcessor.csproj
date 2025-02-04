@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  
+  <PropertyGroup>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <AWSProjectType>Lambda</AWSProjectType>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <IsPublishable>true</IsPublishable>
+  </PropertyGroup>
+
+  <Target Name="ZipOutputPath" AfterTargets="Publish">
+    <ZipDirectory SourceDirectory="$(PublishDir)" DestinationFile="$(PublishDir)..\$(ProjectName).zip" Overwrite="true" />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.Core" Version="2.5.0" />
+    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
+    <PackageReference Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\libs\Framework\Framework.csproj" />
+    <ProjectReference Include="..\..\libs\Infrastructure\Infrastructure.csproj" />
+  </ItemGroup>
+  
+</Project>
