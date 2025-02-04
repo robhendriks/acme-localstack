@@ -36,6 +36,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "src\libs\App
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageRelay", "src\apps\MessageRelay\MessageRelay.csproj", "{8704278A-5141-49CD-A4F1-1C8742EBA413}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrderRequestedProcessor", "src\apps\OrderRequestedProcessor\OrderRequestedProcessor.csproj", "{05032AF3-BD5A-4A3E-8621-48AB4D46E729}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,7 @@ Global
 		{9C151C00-26D8-4FAE-BD31-174C3E06D38D} = {0E564744-1240-4E97-B359-193670586893}
 		{747E2387-FC10-4115-9D9C-8DB4DFA88298} = {0E564744-1240-4E97-B359-193670586893}
 		{8704278A-5141-49CD-A4F1-1C8742EBA413} = {9142DC77-5CC9-423F-BA52-446815FA3D21}
+		{05032AF3-BD5A-4A3E-8621-48AB4D46E729} = {9142DC77-5CC9-423F-BA52-446815FA3D21}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{E8EE7291-B6E4-433F-B302-50AC2F69A0B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -89,5 +92,9 @@ Global
 		{8704278A-5141-49CD-A4F1-1C8742EBA413}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8704278A-5141-49CD-A4F1-1C8742EBA413}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8704278A-5141-49CD-A4F1-1C8742EBA413}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05032AF3-BD5A-4A3E-8621-48AB4D46E729}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05032AF3-BD5A-4A3E-8621-48AB4D46E729}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05032AF3-BD5A-4A3E-8621-48AB4D46E729}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05032AF3-BD5A-4A3E-8621-48AB4D46E729}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

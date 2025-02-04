@@ -10,6 +10,7 @@ export class OrderingStack extends Stack {
   public orderTable: AcmeEntityDb;
   public createOrderFunction: AcmeFunction;
   public getOrderFunction: AcmeFunction;
+  public orderRequestedProcessorFunction: AcmeFunction;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
@@ -51,5 +52,15 @@ export class OrderingStack extends Stack {
     );
 
     this.getOrderFunction.addEntityDb(this.orderTable);
+
+    this.orderRequestedProcessorFunction = new AcmeFunction(
+      this,
+      `${this.node.id}-order-requested-processor`,
+      {
+        projectName: "OrderRequestedProcessor",
+      }
+    );
+
+    this.orderRequestedProcessorFunction.addQueue();
   }
 }

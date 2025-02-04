@@ -14,6 +14,8 @@ import { pascalCase } from "pascal-case";
 import kebabCase from "kebab-case";
 import { createHandler, zipAssetResolver } from "../../util/lambda";
 import { AcmeTopic } from "../events/acme-topic";
+import { Queue } from "aws-cdk-lib/aws-sqs";
+import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 export interface AcmeFunctionProps {
   projectName: string;
@@ -23,6 +25,9 @@ export interface AcmeFunctionProps {
 
 export class AcmeFunction extends Construct {
   public readonly function: Function;
+
+  public deadLetterQueue?: Queue;
+  public queue?: Queue;
 
   private _httpApi?: IHttpApi;
   private _httpApiIntegration?: HttpLambdaIntegration;
@@ -51,6 +56,25 @@ export class AcmeFunction extends Construct {
     ));
   }
 
+  public addQueue(): AcmeFunction {
+    this.deadLetterQueue = new Queue(this, `${this.node.id}-dlq`, {
+      queueName: `${this.node.id}-dlq`,
+    });
+
+    this.queue = new Queue(this, `${this.node.id}-queue`, {
+      queueName: `${this.node.id}-queue`,
+      deadLetterQueue: {
+        queue: this.deadLetterQueue,
+        maxReceiveCount: 3,
+      },
+    });
+
+    this.queue.grantConsumeMessages(this.function);
+    this.function.addEventSource(new SqsEventSource(this.queue));
+
+    return this;
+  }
+
   public addRoute(id: string, path: string, method: HttpMethod): AcmeFunction {
     new HttpRoute(this, `${this.node.id}-route-${id}}`, {
       httpApi: this.getHttpApi(),
@@ -69,6 +93,11 @@ export class AcmeFunction extends Construct {
       stringValue: topic.outboxTable.tableName,
     });
 
+    return this;
+  }
+
+  public addInbox(topic: AcmeTopic): AcmeFunction {
+    // TODO: add event source to function
     return this;
   }
 
