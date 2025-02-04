@@ -49,7 +49,7 @@ export class OrderingStack extends Stack {
 
     this.orderRequestedProcessorFunction = new AcmeFunction(
       this,
-      "order-requested-processor",
+      "order-requested",
       {
         projectName: "OrderRequestedProcessor",
       }
