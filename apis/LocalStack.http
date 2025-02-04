@@ -1,0 +1,2 @@
+﻿# Force DynamoDB TTL clean-up
+DELETE {{managementUrl}}/_aws/dynamodb/expired

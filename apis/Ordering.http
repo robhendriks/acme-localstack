@@ -1,8 +1,8 @@
-﻿POST {{url}}/orders
+﻿POST {{apiUrl}}/orders
 
 ###
 
-@orderId = 587d56f3-901c-4381-80ad-12b3e75297d7
+@orderId = a760c28e-3651-4b3b-8706-ca0a3fa48096
 
-GET {{url}}/orders/{{orderId}}
+GET {{apiUrl}}/orders/{{orderId}}
 Content-Type: application/json
