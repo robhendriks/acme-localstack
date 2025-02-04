@@ -89,3 +89,8 @@ npm run cdk:ordering
 
 - [Ordering](apis/Ordering.http)
 - [LocalStack](apis/LocalStack.http)
+
+## Todos
+
+- Architecture Diagram
+- Claim Check Pattern
