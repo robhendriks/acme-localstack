@@ -96,7 +96,7 @@ public sealed class Function
         string? dynamoDbTableName,
         CancellationToken cancellationToken)
     {
-        var ttl = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds();
+        var ttl = DateTimeOffset.UtcNow.AddHours(2).ToUnixTimeSeconds();
 
         var result = await dynamoDb.UpdateItemAsync(
             dynamoDbTableName,

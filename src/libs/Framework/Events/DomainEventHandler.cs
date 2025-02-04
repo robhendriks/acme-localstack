@@ -1,7 +1,10 @@
 ﻿using Acme.Infrastructure.Events;
+using Acme.Infrastructure.Events.Inbox;
+using Acme.Persistence.Common.Storage;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
 using FluentResults;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Acme.Framework.Events;
 
@@ -15,6 +18,22 @@ public interface IDomainEventHandler<TContent>
 
 public abstract class DomainEventHandler<TContent> : IDomainEventHandler<TContent>
 {
+    private readonly IServiceProvider _serviceProvider;
+
+    protected DomainEventHandler()
+    {
+        var ctx = AcmeContext.FromEnvironment();
+
+        var services = new ServiceCollection();
+
+        services
+            .AddAcmeFramework(ctx)
+            .AddAcmeStorage()
+            .AddAcmeInbox();
+
+        _serviceProvider = services.BuildServiceProvider();
+    }
+
     public async Task<SQSBatchResponse> FunctionHandler(SQSEvent sqsEvent, ILambdaContext lambdaContext)
     {
 #if DEBUG
@@ -22,6 +41,9 @@ public abstract class DomainEventHandler<TContent> : IDomainEventHandler<TConten
 #else
         using var cts = new CancellationTokenSource(lambdaContext.RemainingTime);
 #endif
+
+        var inbox = _serviceProvider.GetRequiredService<ITransactionalInbox>();
+        var amazonDb = _serviceProvider.GetRequiredService<IAmazonDb>();
 
         var response = new SQSBatchResponse();
 
@@ -34,9 +56,19 @@ public abstract class DomainEventHandler<TContent> : IDomainEventHandler<TConten
                 var content = domainEvent.ToT<TContent>();
                 var context = new DomainEventHandlerContext<TContent>(content, lambdaContext);
 
-                await HandleAsync(context, cts.Token);
+                var result = await HandleAsync(context, cts.Token);
+                if (result.IsFailed)
+                {
+                    throw new InvalidOperationException("Failed to handle domain event");
+                }
 
-                // TODO: remove from inbox
+                inbox.Consume(domainEvent);
+
+                var saveResult = await amazonDb.SaveChangesAsync(cts.Token);
+                if (saveResult.IsFailed)
+                {
+                    throw new InvalidOperationException("Failed to commit DynamoDb transaction");
+                }
             }
             catch (Exception ex)
             {

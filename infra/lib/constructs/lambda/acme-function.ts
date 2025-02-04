@@ -113,6 +113,11 @@ export class AcmeFunction extends Construct {
       return this;
     }
 
+    new StringParameter(this, `${this.node.id}-param-inbox-table-name`, {
+      parameterName: `/${this.node.id}/Inbox/TableName`,
+      stringValue: topic.inbox.table.tableName,
+    });
+
     const pipeRole = new Role(this, `${this.node.id}-role-pipe`, {
       roleName: `${this.node.id}-role-pipe`,
       assumedBy: new ServicePrincipal("pipes.amazonaws.com"),
