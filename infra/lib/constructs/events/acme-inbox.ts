@@ -42,8 +42,8 @@ export class AcmeInbox extends Construct {
       },
     });
 
-    this.processorFunction = new Function(this, "function-processor", {
-      functionName: generateName(this.node, "function-processor"),
+    this.processorFunction = new Function(this, "function", {
+      functionName: generateName(this.node, "function"),
       code: zipAssetResolver("InboxProcessor"),
       handler: createHandler("Acme", "InboxProcessor"),
       runtime: Runtime.DOTNET_8,
