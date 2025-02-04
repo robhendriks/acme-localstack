@@ -88,3 +88,4 @@ npm run cdk:ordering
 ## HTTP Apis
 
 - [Ordering](apis/Ordering.http)
+- [LocalStack](apis/LocalStack.http)
