@@ -7,4 +7,5 @@ public interface IAmazonDb
 {
     void Put(PutItemRequest putItemRequest);
     Task<Result> SaveChangesAsync(CancellationToken cancellationToken = default);
+    Task<Result<GetItemResponse>> GetAsync(GetItemRequest request, CancellationToken cancellationToken = default);
 }

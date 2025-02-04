@@ -12,4 +12,10 @@ internal static class OrderMapper
             S = order.Id.ToString("D")
         }
     };
+
+    public static Order FromMap(Dictionary<string, AttributeValue> map) => new()
+    {
+        Id = Guid.Parse(map["id"].S),
+        DomainEvents = []
+    };
 }

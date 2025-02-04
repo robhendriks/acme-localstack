@@ -23,8 +23,25 @@ internal sealed class OrderRepo(
         outbox.PublishAll(order);
     }
 
-    public Task<Result<Order?>> GetAsync(Guid orderId, CancellationToken cancellationToken = default)
+    public async Task<Result<Order?>> GetAsync(Guid orderId, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(Result.Ok<Order?>(null));
+        var request = new GetItemRequest
+        {
+            TableName = options.Value.TableName,
+            Key = { ["id"] = new AttributeValue { S = orderId.ToString("D") } }
+        };
+
+        var result = await amazonDb.GetAsync(request, cancellationToken);
+        if (result.IsFailed)
+        {
+            return Result.Fail(result.Errors[0]);
+        }
+
+        if (!result.Value.IsItemSet)
+        {
+            return Result.Ok<Order?>(null);
+        }
+
+        return OrderMapper.FromMap(result.Value.Item);
     }
 }

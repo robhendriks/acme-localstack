@@ -42,4 +42,18 @@ internal sealed partial class AmazonDb(IAmazonDynamoDB dynamoDb, ILogger<AmazonD
 
         return Result.Ok();
     }
+
+    public async Task<Result<GetItemResponse>> GetAsync(
+        GetItemRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await dynamoDb.GetItemAsync(request, cancellationToken);
+
+        if (response.HttpStatusCode != HttpStatusCode.OK)
+        {
+            return Result.Fail($"DynamoDb get item failed with status code {response.HttpStatusCode}");
+        }
+
+        return response;
+    }
 }
