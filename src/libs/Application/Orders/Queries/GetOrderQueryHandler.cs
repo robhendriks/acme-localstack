@@ -1,4 +1,5 @@
-﻿using Acme.Infrastructure.Orders;
+﻿using Acme.Framework.Results;
+using Acme.Infrastructure.Orders;
 using FluentResults;
 using MediatR;
 
@@ -13,8 +14,13 @@ public sealed class GetOrderQueryHandler(IOrderRepo orderRepo)
 
         if (result.IsFailed)
         {
-            return Result.Fail($"Failed to get order '{request.OrderId}'")
-                .WithErrors(result.Errors);
+            return new InternalServerError("Unable to retrieve order")
+                .CausedBy(result.Errors);
+        }
+
+        if (result.Value == null)
+        {
+            return new NotFoundError("Order not found");
         }
 
         return new GetOrderViewModel

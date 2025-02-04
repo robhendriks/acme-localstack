@@ -23,8 +23,8 @@ internal sealed class OrderRepo(
         outbox.PublishAll(order);
     }
 
-    public Task<Result<Order>> GetAsync(Guid orderId, CancellationToken cancellationToken = default)
+    public Task<Result<Order?>> GetAsync(Guid orderId, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(Result.Fail<Order>("NO!"));
+        return Task.FromResult(Result.Ok<Order?>(null));
     }
 }
