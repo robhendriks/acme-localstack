@@ -12,6 +12,7 @@ import {
   TableV2,
 } from "aws-cdk-lib/aws-dynamodb";
 import { RemovalPolicy } from "aws-cdk-lib";
+import { SqsSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 
 export interface AcmeTopicProps {
   topicName?: string;
@@ -21,8 +22,10 @@ export class AcmeTopic extends Construct {
   public readonly outboxTable: TableV2;
   public readonly topicName: string;
   public readonly topic: Topic;
-  public readonly deadLetterQueue: Queue;
-  public readonly queue: Queue;
+  public readonly outboxDeadLetterQueue: Queue;
+  public readonly outboxQueue: Queue;
+  public readonly inboxDeadLetterQueue: Queue;
+  public readonly inboxQueue: Queue;
   public readonly messageRelayFunction: Function;
 
   constructor(scope: Construct, id: string, props?: AcmeTopicProps) {
@@ -42,17 +45,31 @@ export class AcmeTopic extends Construct {
       timeToLiveAttribute: "ttl",
     });
 
-    this.deadLetterQueue = new Queue(this, `${this.node.id}-dlq`, {
-      queueName: `${this.node.id}-dlq`,
+    this.outboxDeadLetterQueue = new Queue(this, `${this.node.id}-outbox-dlq`, {
+      queueName: `${this.node.id}-outbox-dlq`,
     });
 
-    this.queue = new Queue(this, `${this.node.id}-queue`, {
-      queueName: `${this.node.id}-queue`,
+    this.outboxQueue = new Queue(this, `${this.node.id}-outbox-queue`, {
+      queueName: `${this.node.id}-outbox-queue`,
       deadLetterQueue: {
-        queue: this.deadLetterQueue,
+        queue: this.outboxDeadLetterQueue,
         maxReceiveCount: 3,
       },
     });
+
+    this.inboxDeadLetterQueue = new Queue(this, `${this.node.id}-inbox-dlq`, {
+      queueName: `${this.node.id}-inbox-dlq`,
+    });
+
+    this.inboxQueue = new Queue(this, `${this.node.id}-inbox-queue`, {
+      queueName: `${this.node.id}-inbox-queue`,
+      deadLetterQueue: {
+        queue: this.inboxDeadLetterQueue,
+        maxReceiveCount: 3,
+      },
+    });
+
+    this.topic.addSubscription(new SqsSubscription(this.inboxQueue));
 
     this.messageRelayFunction = new Function(
       this,
@@ -65,7 +82,9 @@ export class AcmeTopic extends Construct {
       }
     );
 
-    this.messageRelayFunction.addEventSource(new SqsEventSource(this.queue));
+    this.messageRelayFunction.addEventSource(
+      new SqsEventSource(this.outboxQueue)
+    );
     this.messageRelayFunction.addEnvironment(
       "SNS_TOPIC_ARN",
       this.topic.topicArn
@@ -75,7 +94,7 @@ export class AcmeTopic extends Construct {
       this.outboxTable.tableName
     );
 
-    this.queue.grantConsumeMessages(this.messageRelayFunction);
+    this.outboxQueue.grantConsumeMessages(this.messageRelayFunction);
     this.topic.grantPublish(this.messageRelayFunction);
 
     const pipeRole = new Role(this, `${this.node.id}-role-pipe`, {
@@ -103,7 +122,7 @@ export class AcmeTopic extends Construct {
           ],
         },
       },
-      target: this.queue.queueArn,
+      target: this.outboxQueue.queueArn,
     });
   }
 }
