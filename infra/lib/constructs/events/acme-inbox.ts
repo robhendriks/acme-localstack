@@ -11,6 +11,7 @@ import { Construct } from "constructs";
 import { zipAssetResolver, createHandler } from "../../util/lambda";
 import { AcmeTopic } from "./acme-topic";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
+import { generateName } from "../../util/construct";
 
 export class AcmeInbox extends Construct {
   public readonly table: TableV2;
@@ -21,36 +22,32 @@ export class AcmeInbox extends Construct {
   constructor(scope: Construct, id: string) {
     super(scope, id);
 
-    this.table = new TableV2(this, `${this.node.id}-table`, {
-      tableName: `${this.node.id}-table`,
+    this.table = new TableV2(this, "table", {
+      tableName: generateName(this.node, "table"),
       partitionKey: { name: "id", type: AttributeType.STRING },
       dynamoStream: StreamViewType.NEW_AND_OLD_IMAGES,
       removalPolicy: RemovalPolicy.DESTROY,
       timeToLiveAttribute: "ttl",
     });
 
-    this.deadLetterQueue = new Queue(this, `${this.node.id}-dlq`, {
-      queueName: `${this.node.id}-inbox-dlq`,
+    this.deadLetterQueue = new Queue(this, "dlq", {
+      queueName: generateName(this.node, "dlq"),
     });
 
-    this.queue = new Queue(this, `${this.node.id}-queue`, {
-      queueName: `${this.node.id}-inbox-queue`,
+    this.queue = new Queue(this, "queue", {
+      queueName: generateName(this.node, "queue"),
       deadLetterQueue: {
         queue: this.deadLetterQueue,
         maxReceiveCount: 3,
       },
     });
 
-    this.processorFunction = new Function(
-      this,
-      `${this.node.id}-processor-function`,
-      {
-        functionName: `${this.node.id}-processor-function`,
-        code: zipAssetResolver("InboxProcessor"),
-        handler: createHandler("Acme", "InboxProcessor"),
-        runtime: Runtime.DOTNET_8,
-      }
-    );
+    this.processorFunction = new Function(this, "function-processor", {
+      functionName: generateName(this.node, "function-processor"),
+      code: zipAssetResolver("InboxProcessor"),
+      handler: createHandler("Acme", "InboxProcessor"),
+      runtime: Runtime.DOTNET_8,
+    });
 
     this.processorFunction.addEventSource(
       new SqsEventSource(this.queue, {

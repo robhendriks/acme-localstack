@@ -5,6 +5,7 @@ import { AcmeOutbox } from "./acme-outbox";
 import { SqsSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 import { Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import { CfnPipe } from "aws-cdk-lib/aws-pipes";
+import { generateName } from "../../util/construct";
 
 export interface AcmeTopicProps {
   topicName?: string;
@@ -22,15 +23,15 @@ export class AcmeTopic extends Construct {
 
     this.topicName = props?.topicName ?? "default";
 
-    this.topic = new Topic(this, `${this.node.id}-topic`, {
-      topicName: `${this.node.id}-topic`,
+    this.topic = new Topic(this, "topic", {
+      topicName: generateName(this.node, "topic"),
     });
 
-    this.outbox = new AcmeOutbox(this, `${this.node.id}-outbox`, {
+    this.outbox = new AcmeOutbox(this, "outbox", {
       topicName: this.topicName,
     });
 
-    this.inbox = new AcmeInbox(this, `${this.node.id}-inbox`);
+    this.inbox = new AcmeInbox(this, "inbox");
 
     // Subscribe inbox queue to SNS topic
     this.topic.addSubscription(new SqsSubscription(this.inbox.queue));

@@ -17,7 +17,7 @@ export class InfraStack extends Stack {
   }
 
   private createHttpApi(): HttpApi {
-    const httpApi = new HttpApi(this, `${this.node.id}-http-api`, {
+    const httpApi = new HttpApi(this, "http-api", {
       apiName: "acme",
       createDefaultStage: false,
     });
@@ -29,7 +29,7 @@ export class InfraStack extends Stack {
 
     Tags.of(httpApi).add("_custom_id_", "acme");
 
-    new StringParameter(this, `${this.node.id}-param-http-api-id`, {
+    new StringParameter(this, "param-http-api-id", {
       parameterName: HTTP_API_ID_PARAMETER_PATH,
       stringValue: httpApi.httpApiId,
     });
@@ -38,7 +38,7 @@ export class InfraStack extends Stack {
   }
 
   private createEventBus(): EventBus {
-    const eventBus = new EventBus(this, `${this.node.id}-event-bus`, {
+    const eventBus = new EventBus(this, "event-bus", {
       eventBusName: "acme",
     });
 

@@ -18,6 +18,7 @@ import { Queue } from "aws-cdk-lib/aws-sqs";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import { CfnPipe } from "aws-cdk-lib/aws-pipes";
+import { generateName } from "../../util/construct";
 
 export interface AcmeFunctionProps {
   projectName: string;
@@ -37,8 +38,8 @@ export class AcmeFunction extends Construct {
   constructor(scope: Construct, id: string, props: AcmeFunctionProps) {
     super(scope, id);
 
-    this.function = new Function(this, `${this.node.id}-function`, {
-      functionName: `${this.node.id}-function`,
+    this.function = new Function(this, "function", {
+      functionName: generateName(this.node, "function"),
       code: zipAssetResolver(props.projectName),
       handler: props.handler ?? createHandler("Acme", props.projectName),
       runtime: props.runtime ?? Runtime.DOTNET_8,
@@ -53,7 +54,7 @@ export class AcmeFunction extends Construct {
 
   private getHttpIntegration(): HttpLambdaIntegration {
     return (this._httpApiIntegration ??= new HttpLambdaIntegration(
-      `${this.node.id}-integration`,
+      "integration",
       this.function
     ));
   }
@@ -64,12 +65,12 @@ export class AcmeFunction extends Construct {
       return this;
     }
 
-    this.deadLetterQueue = new Queue(this, `${this.node.id}-dlq`, {
-      queueName: `${this.node.id}-dlq`,
+    this.deadLetterQueue = new Queue(this, "dlq", {
+      queueName: generateName(this.node, "dlq"),
     });
 
-    this.queue = new Queue(this, `${this.node.id}-queue`, {
-      queueName: `${this.node.id}-queue`,
+    this.queue = new Queue(this, "queue", {
+      queueName: generateName(this.node, "queue"),
       deadLetterQueue: {
         queue: this.deadLetterQueue,
         maxReceiveCount: 3,
@@ -77,6 +78,7 @@ export class AcmeFunction extends Construct {
     });
 
     this.queue.grantConsumeMessages(this.function);
+
     this.function.addEventSource(
       new SqsEventSource(this.queue, {
         reportBatchItemFailures: true,
@@ -87,7 +89,7 @@ export class AcmeFunction extends Construct {
   }
 
   public addRoute(id: string, path: string, method: HttpMethod): AcmeFunction {
-    new HttpRoute(this, `${this.node.id}-route-${id}}`, {
+    new HttpRoute(this, `route-${id}`, {
       httpApi: this.getHttpApi(),
       routeKey: HttpRouteKey.with(path, method),
       integration: this.getHttpIntegration(),
@@ -99,7 +101,7 @@ export class AcmeFunction extends Construct {
   public addOutbox(topic: AcmeTopic): AcmeFunction {
     topic.outbox.table.grantFullAccess(this.function);
 
-    new StringParameter(this, `${this.node.id}-param-outbox-table-name`, {
+    new StringParameter(this, "param-outbox-table-name", {
       parameterName: `/${this.node.id}/Outbox/TableName`,
       stringValue: topic.outbox.table.tableName,
     });
@@ -113,18 +115,18 @@ export class AcmeFunction extends Construct {
       return this;
     }
 
-    new StringParameter(this, `${this.node.id}-param-inbox-table-name`, {
+    new StringParameter(this, "param-inbox-table-name", {
       parameterName: `/${this.node.id}/Inbox/TableName`,
       stringValue: topic.inbox.table.tableName,
     });
 
-    const pipeRole = new Role(this, `${this.node.id}-role-pipe`, {
-      roleName: `${this.node.id}-role-pipe`,
+    const pipeRole = new Role(this, "role-pipe", {
+      roleName: generateName(this.node, "role-pipe"),
       assumedBy: new ServicePrincipal("pipes.amazonaws.com"),
     });
 
-    new CfnPipe(this, `${this.node.id}-pipe`, {
-      name: `${this.node.id}-pipe`,
+    new CfnPipe(this, "pipe", {
+      name: generateName(this.node, "pipe"),
       roleArn: pipeRole.roleArn,
       source: topic.inbox.table.tableStreamArn!,
       sourceParameters: {
@@ -152,16 +154,10 @@ export class AcmeFunction extends Construct {
   }
 
   public addEntityDb(db: AcmeEntityDb): AcmeFunction {
-    new StringParameter(
-      this,
-      `${this.node.id}-param-${kebabCase(db.entityName)}-table-name`,
-      {
-        parameterName: `/${this.node.id}/${pascalCase(
-          db.entityName
-        )}/TableName`,
-        stringValue: db.table.tableName,
-      }
-    );
+    new StringParameter(this, `param-${kebabCase(db.entityName)}-table-name`, {
+      parameterName: `/${this.node.id}/${pascalCase(db.entityName)}/TableName`,
+      stringValue: db.table.tableName,
+    });
 
     return this;
   }

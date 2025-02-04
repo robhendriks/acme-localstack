@@ -11,6 +11,7 @@ import { CfnPipe } from "aws-cdk-lib/aws-pipes";
 import { Queue } from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
 import { zipAssetResolver, createHandler } from "../../util/lambda";
+import { generateName } from "../../util/construct";
 
 export interface AcmeOutboxProps {
   topicName: string;
@@ -27,36 +28,32 @@ export class AcmeOutbox extends Construct {
   constructor(scope: Construct, id: string, props: AcmeOutboxProps) {
     super(scope, id);
 
-    this.table = new TableV2(this, `${this.node.id}-table`, {
-      tableName: `${this.node.id}-table`,
+    this.table = new TableV2(this, "table", {
+      tableName: generateName(this.node, "table"),
       partitionKey: { name: "id", type: AttributeType.STRING },
       dynamoStream: StreamViewType.NEW_AND_OLD_IMAGES,
       removalPolicy: RemovalPolicy.DESTROY,
       timeToLiveAttribute: "ttl",
     });
 
-    this.deadLetterQueue = new Queue(this, `${this.node.id}-dlq`, {
-      queueName: `${this.node.id}-dlq`,
+    this.deadLetterQueue = new Queue(this, "dlq", {
+      queueName: generateName(this.node, "dlq"),
     });
 
-    this.queue = new Queue(this, `${this.node.id}-queue`, {
-      queueName: `${this.node.id}-queue`,
+    this.queue = new Queue(this, "queue", {
+      queueName: generateName(this.node, "queue"),
       deadLetterQueue: {
         queue: this.deadLetterQueue,
         maxReceiveCount: 3,
       },
     });
 
-    this.processorFunction = new Function(
-      this,
-      `${this.node.id}-processor-function`,
-      {
-        functionName: `${this.node.id}-processor-function`,
-        code: zipAssetResolver("OutboxProcessor"),
-        handler: createHandler("Acme", "OutboxProcessor"),
-        runtime: Runtime.DOTNET_8,
-      }
-    );
+    this.processorFunction = new Function(this, "function", {
+      functionName: generateName(this.node, "function"),
+      code: zipAssetResolver("OutboxProcessor"),
+      handler: createHandler("Acme", "OutboxProcessor"),
+      runtime: Runtime.DOTNET_8,
+    });
 
     // Configure outbox table in processor
     this.processorFunction.addEnvironment(
@@ -73,13 +70,13 @@ export class AcmeOutbox extends Construct {
     );
 
     // Pipe DynamoDB INSERT events into outbox SQS queue
-    this.pipeRole = new Role(this, `${this.node.id}-role-pipe`, {
-      roleName: `${this.node.id}-role-pipe`,
+    this.pipeRole = new Role(this, "role-pipe", {
+      roleName: generateName(this.node, "role-pipe"),
       assumedBy: new ServicePrincipal("pipes.amazonaws.com"),
     });
 
-    this.pipe = new CfnPipe(this, `${this.node.id}-pipe`, {
-      name: `${this.node.id}-pipe`,
+    this.pipe = new CfnPipe(this, "pipe", {
+      name: generateName(this.node, "pipe"),
       roleArn: this.pipeRole.roleArn,
       source: this.table.tableStreamArn!,
       sourceParameters: {

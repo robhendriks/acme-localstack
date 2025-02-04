@@ -15,20 +15,16 @@ export class OrderingStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    this.topic = new AcmeTopic(this, `${this.node.id}-topic-default`);
+    this.topic = new AcmeTopic(this, "topic-default");
 
-    this.orderTable = new AcmeEntityDb(this, `${this.node.id}-order-db`, {
+    this.orderTable = new AcmeEntityDb(this, "db-orders", {
       partitionKey: "id",
       entityName: "order",
     });
 
-    this.createOrderFunction = new AcmeFunction(
-      this,
-      `${this.node.id}-create-order`,
-      {
-        projectName: "CreateOrder",
-      }
-    );
+    this.createOrderFunction = new AcmeFunction(this, "create-order", {
+      projectName: "CreateOrder",
+    });
 
     this.createOrderFunction.addRoute(
       "create-order",
@@ -39,11 +35,9 @@ export class OrderingStack extends Stack {
     this.createOrderFunction.addOutbox(this.topic);
     this.createOrderFunction.addEntityDb(this.orderTable);
 
-    this.getOrderFunction = new AcmeFunction(
-      this,
-      `${this.node.id}-get-order`,
-      { projectName: "GetOrder" }
-    );
+    this.getOrderFunction = new AcmeFunction(this, "get-order", {
+      projectName: "GetOrder",
+    });
 
     this.getOrderFunction.addRoute(
       "get-order",
@@ -55,7 +49,7 @@ export class OrderingStack extends Stack {
 
     this.orderRequestedProcessorFunction = new AcmeFunction(
       this,
-      `${this.node.id}-order-requested-processor`,
+      "order-requested-processor",
       {
         projectName: "OrderRequestedProcessor",
       }
