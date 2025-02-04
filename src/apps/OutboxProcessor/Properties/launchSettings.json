@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "MessageRelay": {
+    "OutboxProcessor": {
       "commandName": "Executable",
       "commandLineArgs": "--port 5050",
       "executablePath": "%USERPROFILE%\\.dotnet\\tools\\dotnet-lambda-test-tool-8.0.exe",

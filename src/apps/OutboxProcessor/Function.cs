@@ -11,7 +11,7 @@ using Amazon.SimpleNotificationService;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
-namespace Acme.MessageRelay;
+namespace Acme.OutboxProcessor;
 
 public sealed class Function
 {

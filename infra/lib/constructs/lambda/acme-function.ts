@@ -86,11 +86,11 @@ export class AcmeFunction extends Construct {
   }
 
   public addOutbox(topic: AcmeTopic): AcmeFunction {
-    topic.outboxTable.grantFullAccess(this.function);
+    topic.outbox.table.grantFullAccess(this.function);
 
     new StringParameter(this, `${this.node.id}-param-outbox-table-name`, {
       parameterName: `/${this.node.id}/Outbox/TableName`,
-      stringValue: topic.outboxTable.tableName,
+      stringValue: topic.outbox.table.tableName,
     });
 
     return this;

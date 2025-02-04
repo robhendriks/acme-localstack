@@ -1,32 +1,21 @@
-import { Queue } from "aws-cdk-lib/aws-sqs";
-import { Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
+import { Topic } from "aws-cdk-lib/aws-sns";
+import { AcmeInbox } from "./acme-inbox";
+import { AcmeOutbox } from "./acme-outbox";
+import { SqsSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 import { Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import { CfnPipe } from "aws-cdk-lib/aws-pipes";
-import { createHandler, zipAssetResolver } from "../../util/lambda";
-import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
-import { Topic } from "aws-cdk-lib/aws-sns";
-import {
-  AttributeType,
-  StreamViewType,
-  TableV2,
-} from "aws-cdk-lib/aws-dynamodb";
-import { RemovalPolicy } from "aws-cdk-lib";
-import { SqsSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 
 export interface AcmeTopicProps {
   topicName?: string;
 }
 
 export class AcmeTopic extends Construct {
-  public readonly outboxTable: TableV2;
   public readonly topicName: string;
   public readonly topic: Topic;
-  public readonly outboxDeadLetterQueue: Queue;
-  public readonly outboxQueue: Queue;
-  public readonly inboxDeadLetterQueue: Queue;
-  public readonly inboxQueue: Queue;
-  public readonly messageRelayFunction: Function;
+
+  public readonly outbox: AcmeOutbox;
+  public readonly inbox: AcmeInbox;
 
   constructor(scope: Construct, id: string, props?: AcmeTopicProps) {
     super(scope, id);
@@ -37,92 +26,21 @@ export class AcmeTopic extends Construct {
       topicName: `${this.node.id}-topic`,
     });
 
-    this.outboxTable = new TableV2(this, `${this.node.id}-outbox-table`, {
-      tableName: `${this.node.id}-outbox-table`,
-      partitionKey: { name: "id", type: AttributeType.STRING },
-      dynamoStream: StreamViewType.NEW_AND_OLD_IMAGES,
-      removalPolicy: RemovalPolicy.DESTROY,
-      timeToLiveAttribute: "ttl",
+    this.outbox = new AcmeOutbox(this, `${this.node.id}-outbox`, {
+      topicName: this.topicName,
     });
 
-    this.outboxDeadLetterQueue = new Queue(this, `${this.node.id}-outbox-dlq`, {
-      queueName: `${this.node.id}-outbox-dlq`,
-    });
+    this.inbox = new AcmeInbox(this, `${this.node.id}-inbox`);
 
-    this.outboxQueue = new Queue(this, `${this.node.id}-outbox-queue`, {
-      queueName: `${this.node.id}-outbox-queue`,
-      deadLetterQueue: {
-        queue: this.outboxDeadLetterQueue,
-        maxReceiveCount: 3,
-      },
-    });
+    // Subscribe inbox queue to SNS topic
+    this.topic.addSubscription(new SqsSubscription(this.inbox.queue));
 
-    this.inboxDeadLetterQueue = new Queue(this, `${this.node.id}-inbox-dlq`, {
-      queueName: `${this.node.id}-inbox-dlq`,
-    });
+    // Configure SNS in outbox processor
+    this.topic.grantPublish(this.outbox.processorFunction);
 
-    this.inboxQueue = new Queue(this, `${this.node.id}-inbox-queue`, {
-      queueName: `${this.node.id}-inbox-queue`,
-      deadLetterQueue: {
-        queue: this.inboxDeadLetterQueue,
-        maxReceiveCount: 3,
-      },
-    });
-
-    this.topic.addSubscription(new SqsSubscription(this.inboxQueue));
-
-    this.messageRelayFunction = new Function(
-      this,
-      `${this.node.id}-relay-function`,
-      {
-        functionName: `${this.node.id}-relay-function`,
-        code: zipAssetResolver("MessageRelay"),
-        handler: createHandler("Acme", "MessageRelay"),
-        runtime: Runtime.DOTNET_8,
-      }
-    );
-
-    this.messageRelayFunction.addEventSource(
-      new SqsEventSource(this.outboxQueue)
-    );
-    this.messageRelayFunction.addEnvironment(
+    this.outbox.processorFunction.addEnvironment(
       "SNS_TOPIC_ARN",
       this.topic.topicArn
     );
-    this.messageRelayFunction.addEnvironment(
-      "OUTBOX_TABLE_NAME",
-      this.outboxTable.tableName
-    );
-
-    this.outboxQueue.grantConsumeMessages(this.messageRelayFunction);
-    this.topic.grantPublish(this.messageRelayFunction);
-
-    const pipeRole = new Role(this, `${this.node.id}-role-pipe`, {
-      roleName: `${this.node.id}-role-pipe`,
-      assumedBy: new ServicePrincipal("pipes.amazonaws.com"),
-    });
-
-    new CfnPipe(this, "OutboxPipe", {
-      name: `${this.node.id}-pipe`,
-      roleArn: pipeRole.roleArn,
-      source: this.outboxTable.tableStreamArn!,
-      sourceParameters: {
-        dynamoDbStreamParameters: {
-          startingPosition: "LATEST",
-          batchSize: 10,
-        },
-        filterCriteria: {
-          filters: [
-            {
-              pattern: JSON.stringify({
-                eventName: ["INSERT"],
-                dynamodb: { NewImage: { topic: { S: [this.topicName] } } },
-              }),
-            },
-          ],
-        },
-      },
-      target: this.outboxQueue.queueArn,
-    });
   }
 }
