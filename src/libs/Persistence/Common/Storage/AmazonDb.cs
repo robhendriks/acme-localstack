@@ -59,6 +59,7 @@ internal sealed partial class AmazonDb(IAmazonDynamoDB dynamoDb, ILogger<AmazonD
         }
 
         _putItemRequests.Clear();
+        _updateItemRequests.Clear();
 
         return Result.Ok();
     }
