@@ -1,13 +1,14 @@
+using System.Text.Json;
+using Acme.Application;
+using Acme.Application.Orders.Commands;
 using Acme.Domain.Orders;
 using Acme.Framework;
-using Acme.Framework.Configuration;
-using Acme.Infrastructure.Events;
 using Acme.Infrastructure.Events.Outbox;
 using Acme.Infrastructure.Orders;
 using Acme.Persistence.Common.Storage;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
-using Microsoft.Extensions.Configuration;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -27,7 +28,8 @@ public sealed class Function
             .AddAcmeFramework(ctx)
             .AddAcmeStorage()
             .AddAcmeOutbox()
-            .AddAcmeOrders();
+            .AddAcmeOrders()
+            .AddAcmeApplication();
 
         _serviceProvider = services.BuildServiceProvider();
     }
@@ -40,13 +42,17 @@ public sealed class Function
         using var cts = new CancellationTokenSource(context.RemainingTime);
 #endif
 
-        var db = _serviceProvider.GetRequiredService<IAmazonDb>();
-        var orderRepo = _serviceProvider.GetRequiredService<IOrderRepo>();
+        var sender = _serviceProvider.GetRequiredService<ISender>();
+        var result = await sender.Send(new CreateOrderCommand(), cts.Token);
 
-        orderRepo.Create(Order.Create());
+        if (result.IsFailed)
+        {
+            return new APIGatewayProxyResponse
+            {
+                StatusCode = 409
+            };
+        }
 
-        await db.SaveChangesAsync(cts.Token);
-
-        return new APIGatewayProxyResponse { StatusCode = 200 };
+        return new APIGatewayProxyResponse { StatusCode = 201 };
     }
 }
