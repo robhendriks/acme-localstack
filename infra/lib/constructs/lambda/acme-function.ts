@@ -8,12 +8,12 @@ import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations
 import { Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 import { importHttpApi } from "../../util/http-api";
-import { AcmeOutbox } from "../events/acme-outbox";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { AcmeEntityDb } from "../storage/acme-entity-db";
 import { pascalCase } from "pascal-case";
 import kebabCase from "kebab-case";
 import { createHandler, zipAssetResolver } from "../../util/lambda";
+import { AcmeTopic } from "../events/acme-topic";
 
 export interface AcmeFunctionProps {
   projectName: string;
@@ -61,12 +61,12 @@ export class AcmeFunction extends Construct {
     return this;
   }
 
-  public addOutbox(outbox: AcmeOutbox): AcmeFunction {
-    outbox.table.grantFullAccess(this.function);
+  public addOutbox(topic: AcmeTopic): AcmeFunction {
+    topic.outboxTable.grantFullAccess(this.function);
 
     new StringParameter(this, `${this.node.id}-param-outbox-table-name`, {
       parameterName: `/${this.node.id}/Outbox/TableName`,
-      stringValue: outbox.table.tableName,
+      stringValue: topic.outboxTable.tableName,
     });
 
     return this;

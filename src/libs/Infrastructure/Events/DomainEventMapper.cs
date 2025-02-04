@@ -1,9 +1,10 @@
-﻿using Acme.Domain.Events;
+﻿using System.Globalization;
+using Acme.Domain.Events;
 using Amazon.DynamoDBv2.Model;
 
 namespace Acme.Infrastructure.Events;
 
-internal static class DomainEventMapper
+public static class DomainEventMapper
 {
     public static Dictionary<string, AttributeValue> ToMap(IDomainEvent domainEvent) => new()
     {
@@ -29,7 +30,21 @@ internal static class DomainEventMapper
         },
         ["createdAt"] = new AttributeValue
         {
-            S = domainEvent.CreatedAt.ToString("O")
+            S = domainEvent.CreatedAt.ToString("O", CultureInfo.InvariantCulture)
         }
+    };
+
+    public static IDomainEvent FromMap(Dictionary<string, AttributeValue> map) => new DomainEvent
+    {
+        Id = Guid.Parse(map["id"].S),
+        EventName = map["eventName"].S,
+        Content = map["content"].S,
+        ContentHash = map["contentHash"].S,
+        Topic = map["topic"].S,
+        CreatedAt = DateTime.Parse(
+            map["createdAt"].S,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeUniversal
+        )
     };
 }

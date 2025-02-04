@@ -1,18 +1,24 @@
 import { Queue } from "aws-cdk-lib/aws-sqs";
 import { Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
-import { AcmeOutbox } from "./acme-outbox";
 import { Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import { CfnPipe } from "aws-cdk-lib/aws-pipes";
 import { createHandler, zipAssetResolver } from "../../util/lambda";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { Topic } from "aws-cdk-lib/aws-sns";
+import {
+  AttributeType,
+  StreamViewType,
+  TableV2,
+} from "aws-cdk-lib/aws-dynamodb";
+import { RemovalPolicy } from "aws-cdk-lib";
 
 export interface AcmeTopicProps {
   topicName?: string;
 }
 
 export class AcmeTopic extends Construct {
+  public readonly outboxTable: TableV2;
   public readonly topicName: string;
   public readonly topic: Topic;
   public readonly deadLetterQueue: Queue;
@@ -26,6 +32,13 @@ export class AcmeTopic extends Construct {
 
     this.topic = new Topic(this, `${this.node.id}-topic`, {
       topicName: `${this.node.id}-topic`,
+    });
+
+    this.outboxTable = new TableV2(this, `${this.node.id}-outbox-table`, {
+      tableName: `${this.node.id}-outbox-table`,
+      partitionKey: { name: "id", type: AttributeType.STRING },
+      dynamoStream: StreamViewType.NEW_AND_OLD_IMAGES,
+      removalPolicy: RemovalPolicy.DESTROY,
     });
 
     this.deadLetterQueue = new Queue(this, `${this.node.id}-dlq`, {
@@ -52,12 +65,14 @@ export class AcmeTopic extends Construct {
     );
 
     this.messageRelayFunction.addEventSource(new SqsEventSource(this.queue));
+    this.messageRelayFunction.addEnvironment(
+      "SNS_TOPIC_ARN",
+      this.topic.topicArn
+    );
 
     this.queue.grantConsumeMessages(this.messageRelayFunction);
     this.topic.grantPublish(this.messageRelayFunction);
-  }
 
-  public connectOutbox(outbox: AcmeOutbox): AcmeTopic {
     const pipeRole = new Role(this, `${this.node.id}-role-pipe`, {
       roleName: `${this.node.id}-role-pipe`,
       assumedBy: new ServicePrincipal("pipes.amazonaws.com"),
@@ -66,7 +81,7 @@ export class AcmeTopic extends Construct {
     new CfnPipe(this, "OutboxPipe", {
       name: `${this.node.id}-pipe`,
       roleArn: pipeRole.roleArn,
-      source: outbox.table.tableStreamArn!,
+      source: this.outboxTable.tableStreamArn!,
       sourceParameters: {
         dynamoDbStreamParameters: {
           startingPosition: "LATEST",
@@ -85,7 +100,5 @@ export class AcmeTopic extends Construct {
       },
       target: this.queue.queueArn,
     });
-
-    return this;
   }
 }
