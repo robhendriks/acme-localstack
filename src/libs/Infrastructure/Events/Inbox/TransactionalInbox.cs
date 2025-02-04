@@ -32,7 +32,7 @@ internal sealed partial class TransactionalInbox(
                     new AttributeValue { N = AmazonDbUtil.CalculateTtl().ToString(CultureInfo.InvariantCulture) }
                 }
             },
-            UpdateExpression = "#T = :t",
+            UpdateExpression = "SET #T = :t",
         });
     }
 }
