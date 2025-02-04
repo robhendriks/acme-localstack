@@ -52,7 +52,11 @@ export class AcmeInbox extends Construct {
       }
     );
 
-    this.processorFunction.addEventSource(new SqsEventSource(this.queue));
+    this.processorFunction.addEventSource(
+      new SqsEventSource(this.queue, {
+        reportBatchItemFailures: true,
+      })
+    );
 
     this.processorFunction.addEnvironment(
       "INBOX_TABLE_NAME",

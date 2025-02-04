@@ -77,7 +77,11 @@ export class AcmeFunction extends Construct {
     });
 
     this.queue.grantConsumeMessages(this.function);
-    this.function.addEventSource(new SqsEventSource(this.queue));
+    this.function.addEventSource(
+      new SqsEventSource(this.queue, {
+        reportBatchItemFailures: true,
+      })
+    );
 
     return this;
   }

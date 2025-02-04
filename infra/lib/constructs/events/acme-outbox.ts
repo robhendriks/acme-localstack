@@ -66,7 +66,11 @@ export class AcmeOutbox extends Construct {
 
     // Subscribe processor function to outbox queue
     this.queue.grantConsumeMessages(this.processorFunction);
-    this.processorFunction.addEventSource(new SqsEventSource(this.queue));
+    this.processorFunction.addEventSource(
+      new SqsEventSource(this.queue, {
+        reportBatchItemFailures: true,
+      })
+    );
 
     // Pipe DynamoDB INSERT events into outbox SQS queue
     this.pipeRole = new Role(this, `${this.node.id}-role-pipe`, {
