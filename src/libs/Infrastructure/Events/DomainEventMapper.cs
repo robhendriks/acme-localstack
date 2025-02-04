@@ -3,33 +3,33 @@ using Amazon.DynamoDBv2.Model;
 
 namespace Acme.Infrastructure.Events;
 
-internal static class MessageMapper
+internal static class DomainEventMapper
 {
-    public static Dictionary<string, AttributeValue> ToMap(Message message) => new()
+    public static Dictionary<string, AttributeValue> ToMap(IDomainEvent domainEvent) => new()
     {
         ["id"] = new AttributeValue
         {
-            S = message.Id.ToString("D")
+            S = domainEvent.Id.ToString("D")
         },
         ["eventName"] = new AttributeValue
         {
-            S = message.EventName
+            S = domainEvent.EventName
         },
         ["topic"] = new AttributeValue
         {
-            S = message.Topic
+            S = domainEvent.Topic
         },
         ["content"] = new AttributeValue
         {
-            S = message.Content
+            S = domainEvent.Content
         },
         ["contentHash"] = new AttributeValue
         {
-            S = message.ContentHash
+            S = domainEvent.ContentHash
         },
         ["createdAt"] = new AttributeValue
         {
-            S = message.CreatedAt.ToString("O")
+            S = domainEvent.CreatedAt.ToString("O")
         }
     };
 }

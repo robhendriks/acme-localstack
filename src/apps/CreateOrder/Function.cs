@@ -1,6 +1,9 @@
+using Acme.Domain.Orders;
 using Acme.Framework;
 using Acme.Framework.Configuration;
 using Acme.Infrastructure.Events;
+using Acme.Infrastructure.Events.Outbox;
+using Acme.Infrastructure.Orders;
 using Acme.Persistence.Common.Storage;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
@@ -23,7 +26,8 @@ public sealed class Function
         services
             .AddAcmeFramework(ctx)
             .AddAcmeStorage()
-            .AddAcmeOutbox();
+            .AddAcmeOutbox()
+            .AddAcmeOrders();
 
         _serviceProvider = services.BuildServiceProvider();
     }
@@ -37,10 +41,9 @@ public sealed class Function
 #endif
 
         var db = _serviceProvider.GetRequiredService<IAmazonDb>();
-        var outbox = _serviceProvider.GetRequiredService<ITransactionalOutbox>();
+        var orderRepo = _serviceProvider.GetRequiredService<IOrderRepo>();
 
-        outbox.Publish("Foo", new { Foo = "Bar", Baz = 1337 });
-        outbox.Publish("Bar", new { Boo = "Bar", Baz = 1337 });
+        orderRepo.Create(Order.Create());
 
         await db.SaveChangesAsync(cts.Token);
 

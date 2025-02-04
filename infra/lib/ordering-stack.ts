@@ -3,9 +3,11 @@ import { Construct } from "constructs";
 import { HttpMethod } from "aws-cdk-lib/aws-apigatewayv2";
 import { AcmeFunction } from "./constructs/lambda/acme-function";
 import { AcmeOutbox } from "./constructs/events/acme-outbox";
+import { AcmeEntityDb } from "./constructs/storage/acme-entity-db";
 
 export class OrderingStack extends Stack {
   public outbox: AcmeOutbox;
+  public orderTable: AcmeEntityDb;
   public createOrderFunction: AcmeFunction;
   public getOrderFunction: AcmeFunction;
 
@@ -13,6 +15,11 @@ export class OrderingStack extends Stack {
     super(scope, id, props);
 
     this.outbox = new AcmeOutbox(this, `${this.node.id}-outbox`);
+
+    this.orderTable = new AcmeEntityDb(this, `${this.node.id}-order-db`, {
+      partitionKey: "id",
+      entityName: "order",
+    });
 
     this.createOrderFunction = new AcmeFunction(
       this,
@@ -29,6 +36,7 @@ export class OrderingStack extends Stack {
     );
 
     this.createOrderFunction.addOutbox(this.outbox);
+    this.createOrderFunction.addEntityDb(this.orderTable);
 
     this.getOrderFunction = new AcmeFunction(
       this,
@@ -41,5 +49,7 @@ export class OrderingStack extends Stack {
       "/orders/{orderId}",
       HttpMethod.GET
     );
+
+    this.getOrderFunction.addEntityDb(this.orderTable);
   }
 }

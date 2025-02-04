@@ -1,5 +1,4 @@
 import {
-  HttpApi,
   HttpMethod,
   HttpRoute,
   HttpRouteKey,
@@ -12,6 +11,9 @@ import { resolve } from "path";
 import { importHttpApi } from "../../util/http-api";
 import { AcmeOutbox } from "../events/acme-outbox";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
+import { AcmeEntityDb } from "../storage/acme-entity-db";
+import { pascalCase } from "pascal-case";
+import kebabCase from "kebab-case";
 
 export interface AcmeFunctionProps {
   projectName: string;
@@ -74,6 +76,21 @@ export class AcmeFunction extends Construct {
       parameterName: `/${this.node.id}/Outbox/TableName`,
       stringValue: outbox.table.tableName,
     });
+
+    return this;
+  }
+
+  public addEntityDb(db: AcmeEntityDb): AcmeFunction {
+    new StringParameter(
+      this,
+      `${this.node.id}-param-${kebabCase(db.entityName)}-table-name`,
+      {
+        parameterName: `/${this.node.id}/${pascalCase(
+          db.entityName
+        )}/TableName`,
+        stringValue: db.table.tableName,
+      }
+    );
 
     return this;
   }

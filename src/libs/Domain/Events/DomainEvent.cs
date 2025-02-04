@@ -4,11 +4,11 @@ using System.Text.Json;
 
 namespace Acme.Domain.Events;
 
-public sealed class Message
+public sealed class DomainEvent : IDomainEvent
 {
     private const string DefaultTopic = "default";
 
-    private static JsonSerializerOptions _jsonSerializerOptions = new()
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         WriteIndented = false,
@@ -22,12 +22,12 @@ public sealed class Message
     public required string Topic { get; init; }
     public required DateTime CreatedAt { get; init; }
 
-    public static Message Create<TPayload>(string eventName, TPayload payload, string? topic = null)
+    public static DomainEvent Create<TPayload>(string eventName, TPayload payload, string? topic = null)
     {
-        var jsonContent = JsonSerializer.Serialize(payload, _jsonSerializerOptions);
+        var jsonContent = JsonSerializer.Serialize(payload, JsonSerializerOptions);
         var jsonContentHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(jsonContent)));
 
-        return new Message
+        return new DomainEvent
         {
             Id = Guid.NewGuid(),
             EventName = eventName,

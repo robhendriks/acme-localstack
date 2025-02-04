@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace Acme.Infrastructure.Events;
+namespace Acme.Infrastructure.Events.Outbox;
 
 public static class DependencyInjection
 {
