@@ -11,11 +11,11 @@ public sealed class CreateOrderCommandHandler(IOrderRepo orderRepo)
     public Task<Result<CreateOrderViewModel>> Handle(CreateOrderCommand request,
         CancellationToken cancellationToken)
     {
-        var order = Order.Create();
+        var order = Order.Create(request.Note);
 
         orderRepo.Create(order);
 
-        var orderViewModel = new CreateOrderViewModel { Id = order.Id };
+        var orderViewModel = new CreateOrderViewModel { Id = order.Id, Note = order.Note };
 
         return Task.FromResult(Result.Ok(orderViewModel));
     }

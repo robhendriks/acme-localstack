@@ -25,7 +25,8 @@ public sealed class GetOrderQueryHandler(IOrderRepo orderRepo)
 
         return new GetOrderViewModel
         {
-            Id = result.Value.Id
+            Id = result.Value.Id,
+            Note = result.Value.Note
         };
     }
 }

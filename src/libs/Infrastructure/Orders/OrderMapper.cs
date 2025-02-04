@@ -10,12 +10,17 @@ internal static class OrderMapper
         ["id"] = new AttributeValue
         {
             S = order.Id.ToString("D")
+        },
+        ["note"] = new AttributeValue
+        {
+            S = order.Note
         }
     };
 
     public static Order FromMap(Dictionary<string, AttributeValue> map) => new()
     {
         Id = Guid.Parse(map["id"].S),
+        Note = map["note"].S,
         DomainEvents = []
     };
 }

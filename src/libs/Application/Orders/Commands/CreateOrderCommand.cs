@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Acme.Application.Orders.Commands;
 
-public sealed record CreateOrderCommand : IRequest<Result<CreateOrderViewModel>>, ITransactionalRequest;
+public sealed record CreateOrderCommand(string Note) : IRequest<Result<CreateOrderViewModel>>, ITransactionalRequest;

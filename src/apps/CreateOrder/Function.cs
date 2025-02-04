@@ -42,7 +42,7 @@ public sealed class Function
 #endif
 
         var sender = _serviceProvider.GetRequiredService<ISender>();
-        var result = await sender.Send(new CreateOrderCommand(), cts.Token);
+        var result = await sender.Send(new CreateOrderCommand(request.Body), cts.Token);
 
         return result.ToApiGatewayProxyResponse();
     }
